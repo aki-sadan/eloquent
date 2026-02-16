@@ -1,0 +1,30 @@
+# ELOQUENT — Dependencies
+
+# API Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Datenbank
+sqlalchemy>=2.0.0
+
+# HTTP Client (für Anthropic API)
+httpx>=0.25.0
+
+# Validation
+pydantic>=2.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Hybrid Scoring Engine (optional — install for enhanced analysis)
+spacy>=3.7.0
+sentence-transformers>=2.2.0
+torch>=2.0.0
+numpy>=1.24.0
+
+# Später für Produktion:
+# psycopg2-binary  # PostgreSQL
+# alembic           # DB Migrations
+# redis             # Caching/Sessions
+# python-jose       # JWT Auth
