@@ -1,27 +1,30 @@
 // ============================================================================
 // ELOQUENT — Das Wortduell: Situationen (Kategorie-basiert)
-// 12 Kategorien × 8 Situationen = 96 Situationen
-// Jede Kategorie: 2-3 leicht, 2-3 mittel, 2-3 schwer
+// 12 Kategorien × 3 Schwierigkeiten × 3 Situationen = 108 Situationen
 // ============================================================================
 
 export const SITUATION_KATEGORIEN = [
-  { id: "bewerbung", label: "Bewerbungsgespräch", emoji: "💼", beschreibung: "Formelle Vorstellungssituationen" },
-  { id: "geschaeft", label: "Geschäftstreffen", emoji: "🏢", beschreibung: "Meetings mit CEOs und Vorständen" },
-  { id: "diplomatie", label: "Diplomatischer Empfang", emoji: "🕊️", beschreibung: "Internationale Verhandlungen und Empfänge" },
-  { id: "gericht", label: "Gerichtsverhandlung", emoji: "⚖️", beschreibung: "Plädoyers, Verhandlungen und Verteidigung" },
-  { id: "akademie", label: "Akademische Debatte", emoji: "🎓", beschreibung: "Universitäre Diskurse und Forschung" },
-  { id: "salon", label: "Literarischer Salon", emoji: "📚", beschreibung: "Gehobene Literaturabende und Poesie" },
-  { id: "politik", label: "Politische Rede", emoji: "🏛️", beschreibung: "Reden vor Parlament und Volk" },
-  { id: "philosophie", label: "Philosophisches Gespräch", emoji: "🤔", beschreibung: "Tiefgründige Reflexionen und Debatten" },
-  { id: "alltag", label: "Alltag & Gesellschaft", emoji: "☕", beschreibung: "Eleganz im Alltäglichen" },
-  { id: "geschichte", label: "Historische Momente", emoji: "📜", beschreibung: "Epochale Reden und historische Briefe" },
-  { id: "medizin", label: "Medizin & Arztgespräch", emoji: "🏥", beschreibung: "Medizinische Fachgespräche und Patientenkommunikation" },
-  { id: "medien", label: "Medien & Journalismus", emoji: "🎙️", beschreibung: "Interviews, Debatten und Pressekonferenzen" },
+  { id: "bewerbung", label: "Bewerbungsgespräch", emoji: "💼" },
+  { id: "geschaeft", label: "Geschäftstreffen", emoji: "🏢" },
+  { id: "diplomatie", label: "Diplomatischer Empfang", emoji: "🕊️" },
+  { id: "gericht", label: "Gerichtsverhandlung", emoji: "⚖️" },
+  { id: "akademie", label: "Akademische Debatte", emoji: "🎓" },
+  { id: "salon", label: "Literarischer Salon", emoji: "📚" },
+  { id: "politik", label: "Politische Rede", emoji: "🏛️" },
+  { id: "philosophie", label: "Philosophisches Gespräch", emoji: "🤔" },
+  { id: "alltag", label: "Alltag & Gesellschaft", emoji: "☕" },
+  { id: "geschichte", label: "Historische Momente", emoji: "📜" },
+  { id: "medizin", label: "Medizin & Arztgespräch", emoji: "🏥" },
+  { id: "medien", label: "Medien & Journalismus", emoji: "🎙️" },
 ];
 
+// =============================================================================
+// Situationen nach Kategorie und Schwierigkeit
+// 12 Kategorien × 3 Schwierigkeiten × 3 Situationen = 108 Situationen
+// =============================================================================
 export const SITUATIONEN_NACH_KATEGORIE = {
   // ==========================================================================
-  // BEWERBUNGSGESPRÄCH — 8 Situationen
+  // BEWERBUNGSGESPRÄCH
   // ==========================================================================
   bewerbung: {
     leicht: [
@@ -48,7 +51,7 @@ export const SITUATIONEN_NACH_KATEGORIE = {
       {
         titel: "🔍 Die Lücke im Lebenslauf",
         beschreibung: "Der Personaler fragt nach einer zweijährigen Lücke in eurem Lebenslauf. Erklärt sie so überzeugend, dass sie zur Stärke wird.",
-        kontext: "Kritisches Bewerbungsgespräch",
+        kontext: "Kritisches HR-Interview",
         schluesselwoerter: ["reflexion", "neuorientierung", "persönlichkeit", "reife", "selbstfindung", "auszeit", "weiterbildung", "erkenntnis", "mut", "ehrlichkeit"],
       },
       {
@@ -77,11 +80,17 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         kontext: "Panel-Interview",
         schluesselwoerter: ["wandel", "querdenken", "transfer", "vielseitigkeit", "anpassung", "innovation", "perspektivwechsel", "lernfähigkeit", "brücke", "bereicherung", "risiko"],
       },
+      {
+        titel: "🧊 Das Stressinterview",
+        beschreibung: "Der Interviewer provoziert absichtlich: 'Ihr wirkt nicht besonders beeindruckend.' Behaltet die Fassung und überzeugt mit Klasse.",
+        kontext: "Stresstest-Interview",
+        schluesselwoerter: ["souveränität", "gelassenheit", "schlagfertigkeit", "selbstbewusstsein", "resilienz", "haltung", "eloquenz", "charisma", "überlegenheit", "stärke", "kontrolle"],
+      },
     ],
   },
 
   // ==========================================================================
-  // GESCHÄFTSTREFFEN — 8 Situationen
+  // GESCHÄFTSTREFFEN
   // ==========================================================================
   geschaeft: {
     leicht: [
@@ -96,6 +105,12 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         beschreibung: "Stellt eurem Team das neue Quartalsziel vor. Motiviert alle so, dass sie mit Begeisterung in die Arbeit starten.",
         kontext: "Wöchentliches Team-Meeting",
         schluesselwoerter: ["teamgeist", "motivation", "ziel", "zusammenarbeit", "fortschritt", "energie", "gemeinsam", "leistung", "optimismus", "strategie"],
+      },
+      {
+        titel: "🎉 Die Willkommensrede",
+        beschreibung: "Ein neues Teammitglied beginnt heute. Haltet eine kurze, herzliche Begrüßungsrede, die sofort ein Zugehörigkeitsgefühl schafft.",
+        kontext: "Onboarding im Büro",
+        schluesselwoerter: ["willkommen", "team", "freude", "zusammenhalt", "kultur", "gemeinschaft", "unterstützung", "integration", "wertschätzung", "anfang"],
       },
     ],
     mittel: [
@@ -141,7 +156,7 @@ export const SITUATIONEN_NACH_KATEGORIE = {
   },
 
   // ==========================================================================
-  // DIPLOMATISCHER EMPFANG — 8 Situationen
+  // DIPLOMATISCHER EMPFANG
   // ==========================================================================
   diplomatie: {
     leicht: [
@@ -177,6 +192,12 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         kontext: "Friedensverhandlung",
         schluesselwoerter: ["vermittlung", "dialog", "verständnis", "kompromiss", "deeskalation", "vertrauen", "geduld", "empathie", "brücke", "lösung", "frieden"],
       },
+      {
+        titel: "🌐 Das Klimaabkommen",
+        beschreibung: "Auf dem Klimagipfel müsst ihr als Vertreter eures Landes einen ambitionierten Kompromiss aushandeln, der alle zufriedenstellt.",
+        kontext: "Internationaler Klimagipfel",
+        schluesselwoerter: ["klima", "verantwortung", "kompromiss", "zukunft", "nachhaltigkeit", "kooperation", "verpflichtung", "generation", "handeln", "balance", "solidarität"],
+      },
     ],
     schwer: [
       {
@@ -201,7 +222,7 @@ export const SITUATIONEN_NACH_KATEGORIE = {
   },
 
   // ==========================================================================
-  // GERICHTSVERHANDLUNG — 8 Situationen
+  // GERICHTSVERHANDLUNG
   // ==========================================================================
   gericht: {
     leicht: [
@@ -216,6 +237,12 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         beschreibung: "Ein harmloser Streit um einen Gartenzaun ist vor Gericht gelandet. Verteidigt eure Position mit ruhiger Eloquenz.",
         kontext: "Amtsgericht",
         schluesselwoerter: ["nachbarschaft", "grenze", "recht", "kompromiss", "respekt", "ordnung", "friedlich", "einigung", "vernunft", "zusammenleben"],
+      },
+      {
+        titel: "🚗 Der Verkehrsunfall",
+        beschreibung: "Ein Auffahrunfall, zwei Meinungen. Schildert dem Richter eure Version der Ereignisse so sachlich und überzeugend wie möglich.",
+        kontext: "Verkehrsgerichtstag",
+        schluesselwoerter: ["sachverhalt", "schilderung", "perspektive", "aufmerksamkeit", "verantwortung", "wahrheit", "rekonstruktion", "klarheit", "fakten", "ablauf"],
       },
     ],
     mittel: [
@@ -261,7 +288,7 @@ export const SITUATIONEN_NACH_KATEGORIE = {
   },
 
   // ==========================================================================
-  // AKADEMISCHE DEBATTE — 8 Situationen
+  // AKADEMISCHE DEBATTE
   // ==========================================================================
   akademie: {
     leicht: [
@@ -297,6 +324,12 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         kontext: "Wissenschaftliche Konferenz",
         schluesselwoerter: ["expertise", "diskurs", "argument", "evidenz", "position", "debatte", "fachkenntnis", "gegenargumentation", "konsens", "erkenntnis", "synthese"],
       },
+      {
+        titel: "🧪 Forschung vs. Ethik",
+        beschreibung: "Eure Forschung könnte Millionen helfen, aber die Methode ist ethisch umstritten. Verteidigt euren Ansatz vor dem Ethikrat.",
+        kontext: "Ethikkommission der Universität",
+        schluesselwoerter: ["ethik", "forschung", "fortschritt", "verantwortung", "abwägung", "nutzen", "risiko", "prinzip", "grenze", "wissenschaft", "gewissen"],
+      },
     ],
     schwer: [
       {
@@ -321,7 +354,7 @@ export const SITUATIONEN_NACH_KATEGORIE = {
   },
 
   // ==========================================================================
-  // LITERARISCHER SALON — 8 Situationen
+  // LITERARISCHER SALON
   // ==========================================================================
   salon: {
     leicht: [
@@ -336,6 +369,12 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         beschreibung: "Empfehlt einem Lesemuffel ein Buch so eloquent, dass er es noch heute Abend beginnen möchte.",
         kontext: "Buchhandlung",
         schluesselwoerter: ["empfehlung", "faszination", "geschichte", "spannung", "charakter", "tiefe", "entdeckung", "leidenschaft", "abenteuer", "seite"],
+      },
+      {
+        titel: "✨ Die schönste Zeile",
+        beschreibung: "Welcher Satz aus einem Buch hat euer Leben verändert? Erzählt die Geschichte hinter diesem einen Satz.",
+        kontext: "Leseabend im Salon",
+        schluesselwoerter: ["zitat", "wirkung", "erinnerung", "bedeutung", "moment", "veränderung", "resonanz", "sprache", "erfahrung", "tiefe"],
       },
     ],
     mittel: [
@@ -381,7 +420,7 @@ export const SITUATIONEN_NACH_KATEGORIE = {
   },
 
   // ==========================================================================
-  // POLITISCHE REDE — 8 Situationen
+  // POLITISCHE REDE
   // ==========================================================================
   politik: {
     leicht: [
@@ -396,6 +435,12 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         beschreibung: "Als Elternvertreter haltet ihr eine Rede vor dem Schulrat, um bessere Ausstattung für die Schulbibliothek zu fordern.",
         kontext: "Schulratssitzung",
         schluesselwoerter: ["bildung", "zukunft", "kinder", "förderung", "investition", "lesen", "chance", "verantwortung", "gemeinschaft", "priorität"],
+      },
+      {
+        titel: "🗳️ Die Bürgerinitiative",
+        beschreibung: "Eure Nachbarschaft möchte den alten Park vor dem Abriss retten. Haltet eine überzeugende Rede beim Bürgerentscheid.",
+        kontext: "Bürgerversammlung",
+        schluesselwoerter: ["park", "erhalt", "natur", "gemeinschaft", "erinnerung", "lebensraum", "initiative", "stimme", "engagement", "heimat"],
       },
     ],
     mittel: [
@@ -441,7 +486,7 @@ export const SITUATIONEN_NACH_KATEGORIE = {
   },
 
   // ==========================================================================
-  // PHILOSOPHISCHES GESPRÄCH — 8 Situationen
+  // PHILOSOPHISCHES GESPRÄCH
   // ==========================================================================
   philosophie: {
     leicht: [
@@ -477,6 +522,12 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         kontext: "Erkenntnistheoretische Diskussion",
         schluesselwoerter: ["wahrheit", "objektivität", "subjektivität", "erkenntnis", "realität", "perspektive", "konstruktion", "gewissheit", "zweifel", "relativismus", "absolut"],
       },
+      {
+        titel: "🤖 Mensch und Maschine",
+        beschreibung: "Kann eine Maschine jemals ein Bewusstsein haben? Diskutiert die Grenzen zwischen Mensch und künstlicher Intelligenz.",
+        kontext: "Technikphilosophisches Forum",
+        schluesselwoerter: ["bewusstsein", "intelligenz", "maschine", "menschlichkeit", "grenze", "seele", "denken", "empfindung", "simulation", "identität", "ethik"],
+      },
     ],
     schwer: [
       {
@@ -501,7 +552,7 @@ export const SITUATIONEN_NACH_KATEGORIE = {
   },
 
   // ==========================================================================
-  // ALLTAG & GESELLSCHAFT — 8 Situationen
+  // ALLTAG & GESELLSCHAFT
   // ==========================================================================
   alltag: {
     leicht: [
@@ -537,6 +588,12 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         kontext: "Freundeskreis-Debatte",
         schluesselwoerter: ["komfortzone", "wachstum", "angst", "mut", "veränderung", "sicherheit", "risiko", "entwicklung", "überwindung", "potential", "grenze"],
       },
+      {
+        titel: "🏠 Heimat in der Fremde",
+        beschreibung: "Was bedeutet Heimat für jemanden, der weit weg von zu Hause lebt? Beschreibt das Gefühl zwischen zwei Welten.",
+        kontext: "Interkultureller Abend",
+        schluesselwoerter: ["heimat", "fremde", "identität", "zugehörigkeit", "sehnsucht", "wurzeln", "anpassung", "erinnerung", "brücke", "doppelleben", "kultur"],
+      },
     ],
     schwer: [
       {
@@ -555,13 +612,13 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         titel: "🌹 Das Plädoyer der Liebe",
         beschreibung: "Überzeugt ein zynisches Publikum davon, dass die Liebe die stärkste Kraft im Universum ist.",
         kontext: "Literarische Gala",
-        schluesselwoerter: ["liebe", "kraft", "überzeugung", "cynismus", "hoffnung", "menschlichkeit", "verbindung", "ewigkeit", "beweis", "leidenschaft", "wahrheit", "unbesiegbar"],
+        schluesselwoerter: ["liebe", "kraft", "überzeugung", "zynismus", "hoffnung", "menschlichkeit", "verbindung", "ewigkeit", "beweis", "leidenschaft", "wahrheit", "unbesiegbar"],
       },
     ],
   },
 
   // ==========================================================================
-  // HISTORISCHE MOMENTE — 8 Situationen
+  // HISTORISCHE MOMENTE
   // ==========================================================================
   geschichte: {
     leicht: [
@@ -576,6 +633,12 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         beschreibung: "Schreibt einen Brief aus der Sicht einer Person im Jahr 1900 an jemanden im Jahr 2025. Was würdet ihr erzählen?",
         kontext: "Kreatives Geschichtserzählen",
         schluesselwoerter: ["vergangenheit", "zukunft", "wandel", "staunen", "alltag", "hoffnung", "fortschritt", "erinnerung", "perspektive", "brücke"],
+      },
+      {
+        titel: "🗺️ Die Postkarte der Geschichte",
+        beschreibung: "Ihr seid Zeitreisende und dürft eine einzige Postkarte aus der Vergangenheit schicken. Welchen Moment wählt ihr und was schreibt ihr?",
+        kontext: "Kreatives Geschichtsspiel",
+        schluesselwoerter: ["zeitreise", "moment", "geschichte", "botschaft", "zeuge", "eindruck", "atmosphäre", "faszination", "augenblick", "bericht"],
       },
     ],
     mittel: [
@@ -621,14 +684,14 @@ export const SITUATIONEN_NACH_KATEGORIE = {
   },
 
   // ==========================================================================
-  // MEDIZIN & ARZTGESPRÄCH — 8 Situationen
+  // MEDIZIN & ARZTGESPRÄCH
   // ==========================================================================
   medizin: {
     leicht: [
       {
         titel: "🩺 Die einfache Erklärung",
         beschreibung: "Erklärt einem Patienten eine Diagnose so verständlich, dass er sich informiert statt verängstigt fühlt.",
-        kontext: "Arztgespräch",
+        kontext: "Hausarztpraxis",
         schluesselwoerter: ["diagnose", "verständnis", "erklärung", "beruhigung", "klarheit", "patient", "therapie", "einfühlsam", "vertrauen", "sachlich"],
       },
       {
@@ -637,13 +700,19 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         kontext: "Beratungsgespräch",
         schluesselwoerter: ["therapie", "nutzen", "risiko", "entscheidung", "vertrauen", "aufklärung", "begleitung", "abwägung", "sicherheit", "partnerschaft"],
       },
+      {
+        titel: "🏃 Der Gesundheitsratschlag",
+        beschreibung: "Euer bester Freund lebt ungesund und ignoriert alle Warnungen. Überzeugt ihn charmant, etwas zu ändern — ohne zu belehren.",
+        kontext: "Freundesgespräch",
+        schluesselwoerter: ["gesundheit", "vorsorge", "motivation", "veränderung", "wohlbefinden", "fürsorge", "lebensstil", "balance", "empathie", "ermutigung"],
+      },
     ],
     mittel: [
       {
         titel: "🔬 Die medizinische Konferenz",
         beschreibung: "Auf einer Fachkonferenz präsentiert ihr eine neue Behandlungsmethode. Überzeugt skeptische Kollegen.",
         kontext: "Medizinische Fachkonferenz",
-        schluesselwoerter: ["forschung", "evidenz", "innovation", "studie", "methode", "ergebnis", "durchbruch", "peer-review", "signifikanz", "fortschritt", "paradigma"],
+        schluesselwoerter: ["forschung", "evidenz", "innovation", "studie", "methode", "ergebnis", "durchbruch", "signifikanz", "fortschritt", "paradigma", "behandlung"],
       },
       {
         titel: "⚖️ Das Ethikkomitee",
@@ -662,7 +731,7 @@ export const SITUATIONEN_NACH_KATEGORIE = {
       {
         titel: "💔 Die schwerste Nachricht",
         beschreibung: "Als Arzt müsst ihr einem Patienten eine verheerende Diagnose mitteilen. Findet Worte, die Wahrheit und Würde vereinen.",
-        kontext: "Schwieriges Arztgespräch",
+        kontext: "Schwieriges Klinikgespräch",
         schluesselwoerter: ["mitgefühl", "wahrheit", "würde", "empathie", "stärke", "ehrlichkeit", "begleitung", "hoffnung", "menschlichkeit", "respekt", "trost", "kraft"],
       },
       {
@@ -681,14 +750,14 @@ export const SITUATIONEN_NACH_KATEGORIE = {
   },
 
   // ==========================================================================
-  // MEDIEN & JOURNALISMUS — 8 Situationen
+  // MEDIEN & JOURNALISMUS
   // ==========================================================================
   medien: {
     leicht: [
       {
         titel: "🎙️ Das Podcast-Interview",
         beschreibung: "Ihr seid zu Gast in einem beliebten Podcast. Erzählt eure Geschichte so fesselnd, dass die Zuhörer nicht abschalten.",
-        kontext: "Podcast-Aufnahme",
+        kontext: "Podcast-Studio",
         schluesselwoerter: ["erzählung", "authentizität", "spannung", "persönlichkeit", "erfahrung", "stimme", "interesse", "zuhörer", "charme", "anekdote"],
       },
       {
@@ -708,7 +777,7 @@ export const SITUATIONEN_NACH_KATEGORIE = {
       {
         titel: "🎤 Die Live-Debatte",
         beschreibung: "Ihr moderiert eine Live-Debatte zwischen zwei Politikern. Stellt die Frage, die alles verändert.",
-        kontext: "TV-Debatte",
+        kontext: "TV-Studio",
         schluesselwoerter: ["moderation", "frage", "schärfe", "neutralität", "nachhaken", "fairness", "spannung", "klarheit", "konfrontation", "enthüllung", "wahrheit"],
       },
       {
@@ -717,12 +786,18 @@ export const SITUATIONEN_NACH_KATEGORIE = {
         kontext: "Investigativer Journalismus",
         schluesselwoerter: ["enthüllung", "beweis", "skandal", "wahrheit", "recherche", "fakten", "verantwortung", "transparenz", "öffentlichkeit", "aufklärung", "mut"],
       },
+      {
+        titel: "📻 Das Kriseninterview",
+        beschreibung: "Ein Firmenchef steht nach einem Skandal vor euch. Führt ein hartnäckiges aber faires Interview, das die Wahrheit ans Licht bringt.",
+        kontext: "Nachrichtenstudio",
+        schluesselwoerter: ["interview", "nachhaken", "wahrheit", "verantwortung", "transparenz", "konfrontation", "fairness", "fakten", "glaubwürdigkeit", "öffentlichkeit", "journalismus"],
+      },
     ],
     schwer: [
       {
         titel: "⚠️ Die Krisen-Pressekonferenz",
         beschreibung: "Nach einem Skandal müsst ihr vor der versammelten Presse bestehen. Jedes Wort wird seziert.",
-        kontext: "Pressekonferenz in der Krise",
+        kontext: "Internationaler Pressesaal",
         schluesselwoerter: ["transparenz", "verantwortung", "vertrauen", "krise", "kommunikation", "souveränität", "ehrlichkeit", "strategie", "glaubwürdigkeit", "besonnenheit", "kontrolle", "haltung"],
       },
       {
@@ -742,14 +817,15 @@ export const SITUATIONEN_NACH_KATEGORIE = {
 };
 
 // =============================================================================
-// Rückwärtskompatible flache Struktur: SITUATIONEN.leicht / .mittel / .schwer
+// Rückwärtskompatible flache Struktur
+// Kombiniert alle Kategorien zu SITUATIONEN.leicht / .mittel / .schwer
 // =============================================================================
 function _buildFlat() {
   const flat = { leicht: [], mittel: [], schwer: [] };
   for (const [kat, levels] of Object.entries(SITUATIONEN_NACH_KATEGORIE)) {
     for (const diff of ["leicht", "mittel", "schwer"]) {
       if (levels[diff]) {
-        flat[diff].push(...levels[diff].map(s => ({ ...s, _kategorie: kat })));
+        flat[diff].push(...levels[diff].map(s => ({ ...s, kategorie: kat })));
       }
     }
   }
@@ -758,8 +834,10 @@ function _buildFlat() {
 
 export const SITUATIONEN = _buildFlat();
 
-// Hilfsfunktion: alle Situationen einer Schwierigkeit (oder alle)
+// =============================================================================
+// Hilfsfunktion: Alle Situationen einer Schwierigkeit (oder alle)
+// =============================================================================
 export function alleSituationen(schwierigkeit) {
-  if (schwierigkeit) return SITUATIONEN[schwierigkeit] || [];
+  if (schwierigkeit) return SITUATIONEN[schwierigkeit];
   return [...SITUATIONEN.leicht, ...SITUATIONEN.mittel, ...SITUATIONEN.schwer];
 }
