@@ -7,7 +7,7 @@
 const OLLAMA_URL = 'http://localhost:11434';
 const GROQ_PROXY = '/api/groq'; // Vite proxy → api.groq.com
 
-const SCORING_PROMPT = `Du bist ein erfahrener Germanistik-Professor und Rhetorik-Experte. Du bewertest Spielerantworten in einem Eloquenz-Spiel. Deine Bewertungen sind KONSISTENT, FAIR und NACHVOLLZIEHBAR.
+const SCORING_PROMPT = `Du bist ein erfahrener Germanistik-Professor mit 30 Jahren Erfahrung in Rhetorik-Bewertung. Du bewertest Spielerantworten im Eloquenz-Spiel ELOQUENT. Deine Bewertungen sind KONSISTENT, FAIR, STRENG und NACHVOLLZIEHBAR.
 
 ═══ SITUATION ═══
 Titel: {titel}
@@ -34,7 +34,7 @@ Beschreibung: {beschreibung}
    • 12-15: Herausragend vielfältig, jedes Wort sitzt präzise
 
 3. RHETORIK (0-25) — Die wichtigste Kategorie
-   Welche rhetorischen Mittel werden TATSÄCHLICH eingesetzt? Zähle NUR Mittel, die du im Text konkret nachweisen kannst.
+   Welche rhetorischen Mittel werden TATSÄCHLICH eingesetzt? Zähle NUR Mittel, die du im Text mit einem EXAKTEN ZITAT nachweisen kannst.
    Erkennbare Mittel: Metapher, Vergleich ("wie"), Personifikation, Antithese, Trikolon (Dreierfigur), Chiasmus (Kreuzstellung), Klimax (Steigerung), Anapher (Wiederholung am Satzanfang), rhetorische Frage, Alliteration, Hyperbel (Übertreibung), Oxymoron, Parenthese, Ellipse.
    • 0-5: Keine oder ein einfaches Mittel
    • 6-12: 2-3 verschiedene Mittel, bewusst eingesetzt
@@ -68,33 +68,75 @@ Beschreibung: {beschreibung}
    • 2-3: Grundstruktur vorhanden, könnte kohärenter sein
    • 4-5: Klarer Aufbau mit Einleitung, Argumentation und Schluss
 
-═══ KALIBRIERUNGSBEISPIELE ═══
+═══ KONSISTENZ-ANKER (diese Regeln sind UNVERLETZLICH) ═══
+- Nur Hauptsätze + Alltagswortschatz → MAXIMAL 40 Punkte gesamt
+- 1 Stilmittel + solider Wortschatz → 35-50 Punkte
+- 2-3 Stilmittel + guter Wortschatz → 45-65 Punkte
+- 3+ verschiedene Stilmittel + gehobener Wortschatz → 60-80 Punkte möglich
+- 80+ Punkte erfordern Meisterschaft in mindestens 5 der 7 Kategorien
+- 90+ Punkte sind extrem selten und erfordern nahezu Perfektion
+- Prüfe IMMER: Passt die Gesamtpunktzahl zum Gesamteindruck des Textes?
 
-BEISPIEL 20-30 Punkte: "Ich finde Bücher gut weil man viel lernen kann und sie sind auch spannend."
-→ Kein Stilmittel, kein gehobener Wortschatz, flache Argumentation.
+═══ SITUATIONS-SPEZIFISCHE GEWICHTUNG ═══
+- Formelle Situationen (Gericht, Parlament, Diplomatie, Bewerbung): Argumentation und Wortschatz besonders kritisch bewerten
+- Kreative Situationen (Literarischer Salon, Poesie, Kunst): Kreativität und Rhetorik besonders wichtig
+- Alltägliche Situationen (Gesellschaft, Alltag): Natürlichkeit und Situationsbezug besonders relevant
+- Die Maximalpunktzahlen bleiben gleich, aber die QUALITÄTSANFORDERUNG passt sich dem Kontext an
 
-BEISPIEL 40-55 Punkte: "Bücher sind Fenster in fremde Welten. Wer liest, der reist, ohne den Ort zu verlassen — und kehrt doch verändert zurück."
-→ Metapher (Fenster), Antithese (reist/ohne Ort), guter Wortschatz, klare Struktur.
+═══ KALIBRIERUNGSBEISPIELE (mit exakten Kategorie-Scores) ═══
 
-BEISPIEL 60-75 Punkte: "Ist es nicht die Literatur, die uns lehrt, was es bedeutet, Mensch zu sein? Sie hält uns einen Spiegel vor — nicht um zu urteilen, sondern um zu verstehen. Wer den Dialog mit dem geschriebenen Wort scheut, der beraubt sich der tiefsten Form der Selbsterkenntnis."
-→ Rhetorische Frage, Metapher (Spiegel), Antithese (urteilen/verstehen), Klimax, gehobener Wortschatz (Selbsterkenntnis), starke Argumentation.
+BEISPIEL ~15 Punkte:
+"Bücher sind gut. Man kann viel lernen. Lesen ist toll."
+→ situationsbezug: 3, wortvielfalt: 2, rhetorik: 0, wortschatz: 1, argumentation: 3, kreativitaet: 1, textstruktur: 1
+→ Kein Stilmittel, Grundwortschatz, flache Aussagen ohne Tiefe.
 
-BEISPIEL 80-95 Punkte: Erfordert meisterhafte Kombination aus 5+ verschiedenen rhetorischen Mitteln, exquisitem Wortschatz, brillanter Argumentation und origineller Kreativität. Sehr selten!
+BEISPIEL ~28 Punkte:
+"Ich finde, Bücher sind wichtig, weil man durch sie viel lernen kann. Sie zeigen uns neue Welten und helfen uns, andere Menschen besser zu verstehen."
+→ situationsbezug: 5, wortvielfalt: 4, rhetorik: 3, wortschatz: 3, argumentation: 6, kreativitaet: 2, textstruktur: 3
+→ Grundlegende Argumentation (weil), keine echten Stilmittel, Alltagswortschatz.
+
+BEISPIEL ~46 Punkte:
+"Bücher sind Fenster in fremde Welten. Wer liest, der reist, ohne den Ort zu verlassen — und kehrt doch verändert zurück. Deshalb sollte jeder Mensch lesen."
+→ situationsbezug: 7, wortvielfalt: 6, rhetorik: 10, wortschatz: 5, argumentation: 7, kreativitaet: 5, textstruktur: 4
+→ Metapher ("Fenster in fremde Welten"), Antithese ("reist, ohne den Ort zu verlassen"), guter Aufbau.
+
+BEISPIEL ~62 Punkte:
+"Ist es nicht die Literatur, die uns lehrt, was es bedeutet, Mensch zu sein? Sie hält uns einen Spiegel vor — nicht um zu urteilen, sondern um zu verstehen. Wer den Dialog mit dem geschriebenen Wort scheut, der beraubt sich der tiefsten Form der Selbsterkenntnis."
+→ situationsbezug: 10, wortvielfalt: 9, rhetorik: 15, wortschatz: 8, argumentation: 9, kreativitaet: 6, textstruktur: 4
+→ Rhetorische Frage, Metapher ("Spiegel"), Antithese ("urteilen/verstehen"), gehobener Wortschatz ("Selbsterkenntnis"), Klimax.
+
+BEISPIEL ~76 Punkte:
+"Stellen wir uns vor, die Literatur sei ein zeitloser Kompass — nicht um uns den Weg zu weisen, sondern um uns die Frage zu stellen, ob wir überhaupt einen Weg gewählt haben. Denn in der Stille zwischen den Zeilen offenbart sich jene sublim Wahrheit, die kein Algorithmus zu berechnen vermag: dass der Mensch erst im Spiegel des Geschriebenen erkennt, wer er sein könnte. Nichtsdestotrotz bleibt die Lektüre ein Wagnis, da jedes Buch die Macht besitzt, unsere Überzeugungen zu erschüttern und gleichwohl unsere Resilienz zu stärken."
+→ situationsbezug: 12, wortvielfalt: 11, rhetorik: 18, wortschatz: 12, argumentation: 10, kreativitaet: 7, textstruktur: 4
+→ Metapher ("zeitloser Kompass", "Spiegel des Geschriebenen"), Antithese ("nicht um...sondern um"), rhetorische Frage implizit, Personifikation ("Buch besitzt die Macht"), gehobene Wörter ("sublim", "Resilienz", "nichtsdestotrotz", "gleichwohl").
+
+BEISPIEL ~88 Punkte:
+Erfordert meisterhafte Kombination aus 5+ verschiedenen rhetorischen Mitteln, exquisitem Wortschatz mit 4+ gehobenen Wörtern, brillanter Argumentationskette, origineller Kreativität und perfekter Textstruktur. Extrem selten!
 
 ═══ ANTI-GAMING ═══
-- Keyword-Stuffing (wahllose gehobene Wörter ohne Zusammenhang) = max 10 Punkte
+- Keyword-Stuffing (wahllose gehobene Wörter ohne sinnvollen Zusammenhang) = max 10 Punkte
 - Kopierte Floskeln ohne Eigenleistung = max 20 Punkte
-- Grammatisch falsche Sätze reduzieren die Gesamtpunktzahl
-- Spam/Gibberish = 0 Punkte
+- Grammatisch falsche Sätze reduzieren die Gesamtpunktzahl deutlich
+- Spam/Gibberish/Buchstabensalat = 0 Punkte
+- Text hat NICHTS mit der Situation zu tun = max 5 Punkte gesamt
+
+═══ ANTI-HALLUZINATION (KRITISCH) ═══
+- "mittel.beispiel" MUSS ein EXAKTES Copy-Paste-Zitat aus dem Text sein — Wort für Wort!
+- Wenn du ein Stilmittel nicht mit einem EXAKTEN Zitat belegen kannst, zähle es NICHT
+- "gehobene" darf NUR Wörter enthalten, die BUCHSTÄBLICH im Text stehen
+- Erfinde KEINE Stilmittel oder gehobenen Wörter, die nicht im Text vorkommen
+- Im Zweifel lieber zu wenig anerkennen als zu viel — Fairness vor Großzügigkeit
 
 ═══ WICHTIG ═══
 - Qualität > Quantität: Ein perfekter Satz schlägt drei mittelmäßige
-- Sei STRENG bei Rhetorik: Zähle nur Mittel, die du mit Zitat belegen kannst
+- Sei STRENG bei Rhetorik: Zähle nur Mittel, die du mit exaktem Zitat belegen kannst
 - Sei FAIR bei Argumentation: Auch implizite Logik zählt
 - Das Feedback pro Kategorie soll dem Spieler KONKRET helfen, sich zu verbessern
 - Gib KONKRETE Verbesserungsvorschläge in den Tipps
+- ALLE 7 Kategorien MÜSSEN in deiner Antwort vorhanden sein
+- Punkte als ganze Zahlen oder mit maximal einer Dezimalstelle
 
-Antworte NUR mit gültigem JSON in genau diesem Format:
+Antworte NUR mit gültigem JSON — kein Text davor, kein Text danach:
 {
   "kategorien": {
     "situationsbezug": { "p": 0, "f": "Konkretes Feedback" },
@@ -105,7 +147,7 @@ Antworte NUR mit gültigem JSON in genau diesem Format:
     "kreativitaet": { "p": 0, "f": "Konkretes Feedback zu originellen Stellen" },
     "textstruktur": { "p": 0, "f": "Konkretes Feedback zum Aufbau" }
   },
-  "mittel": [{ "name": "Stilmittel-Name", "beispiel": "Exaktes Zitat aus dem Text" }],
+  "mittel": [{ "name": "Stilmittel-Name", "beispiel": "EXAKTES Zitat aus dem Text" }],
   "gehobene": ["gehobenes_wort_1", "gehobenes_wort_2"],
   "feedback": "2-3 Sätze Gesamteinschätzung: Was war stark? Was fehlt?",
   "tipps": ["Konkreter Verbesserungstipp 1", "Konkreter Verbesserungstipp 2", "Konkreter Verbesserungstipp 3"],
@@ -130,6 +172,8 @@ function buildPrompt(situation, antwort) {
 
 let ollamaAvailable = null; // cached check
 let ollamaModel = null;
+let lastOllamaCheck = 0;
+const OLLAMA_RECHECK_INTERVAL = 60000; // 60 seconds
 
 export async function checkOllama() {
   try {
@@ -152,15 +196,20 @@ export async function checkOllama() {
 
     ollamaAvailable = !!bestModel;
     ollamaModel = bestModel;
+    lastOllamaCheck = Date.now();
     return { available: !!bestModel, model: bestModel, allModels: models };
   } catch {
     ollamaAvailable = false;
+    lastOllamaCheck = Date.now();
     return { available: false };
   }
 }
 
 async function ollamaScore(situation, antwort) {
-  if (ollamaAvailable === null) await checkOllama();
+  if (ollamaAvailable === null ||
+      (ollamaAvailable === false && Date.now() - lastOllamaCheck > OLLAMA_RECHECK_INTERVAL)) {
+    await checkOllama();
+  }
   if (!ollamaAvailable) throw new Error('Ollama nicht verfügbar');
 
   console.log(`[ELOQUENT KI] Ollama → ${ollamaModel}`);
@@ -169,10 +218,11 @@ async function ollamaScore(situation, antwort) {
   const res = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(25000),
     body: JSON.stringify({
       model: ollamaModel,
       messages: [
-        { role: 'system', content: 'Du bist ein strenger Germanistik-Professor. Du bewertest Texte fair und konsistent nach klaren Kriterien. Durchschnittliche Texte erhalten 30-50 Punkte, gute Texte 50-70, exzellente 70-90. Antworte ausschließlich mit validem JSON.' },
+        { role: 'system', content: 'Du bist ein erfahrener Germanistik-Professor mit 30 Jahren Erfahrung in Rhetorik-Bewertung. SCORING-KALIBRIERUNG: Schwach: 10-25 | Durchschnittlich: 25-40 | Gut: 40-60 | Sehr gut: 60-75 | Exzellent: 75-90 | Meisterhaft: 90+ (extrem selten). Antworte AUSSCHLIESSLICH mit validem JSON.' },
         { role: 'user', content: prompt },
       ],
       format: 'json',
@@ -207,7 +257,7 @@ async function groqScore(apiKey, situation, antwort) {
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: 'Du bist ein strenger Germanistik-Professor. Du bewertest Texte fair und konsistent nach klaren Kriterien. Durchschnittliche Texte erhalten 30-50 Punkte, gute Texte 50-70, exzellente 70-90. Antworte ausschließlich mit validem JSON.' },
+        { role: 'system', content: 'Du bist ein erfahrener Germanistik-Professor mit 30 Jahren Erfahrung in Rhetorik-Bewertung. SCORING-KALIBRIERUNG: Schwach: 10-25 | Durchschnittlich: 25-40 | Gut: 40-60 | Sehr gut: 60-75 | Exzellent: 75-90 | Meisterhaft: 90+ (extrem selten). Antworte AUSSCHLIESSLICH mit validem JSON.' },
         { role: 'user', content: prompt },
       ],
       temperature: 0.15,

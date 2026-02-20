@@ -114,9 +114,9 @@ export function berechneAlleKategorien(text, situation) {
 
   // ═══ SITUATIONSBEZUG (0-15) ═══
   let situScore = situMatch.punkte;
-  // Minimum credit for coherent text
-  if (wortAnzahl >= 10 && avgSinn >= 0.4) situScore = Math.max(situScore, 4);
-  if (wortAnzahl >= 20 && avgSinn >= 0.5) situScore = Math.max(situScore, 6);
+  // Minimum credit only if situation match already detected SOME relevance
+  if (situMatch.punkte >= 2 && wortAnzahl >= 10 && avgSinn >= 0.4) situScore = Math.max(situScore, 4);
+  if (situMatch.punkte >= 4 && wortAnzahl >= 20 && avgSinn >= 0.5) situScore = Math.max(situScore, 6);
   situScore = Math.min(situScore, 15);
 
   // ═══ WORTVIELFALT (0-15) ═══
@@ -130,23 +130,17 @@ export function berechneAlleKategorien(text, situation) {
 
   // ═══ WORTSCHATZ (0-15) ═══
   let wortschatzRaw = wortschatz.score;
-  // Fix contradictory feedback: if score is high, gehobene detection should matter less
-  if (wortschatzRaw >= 8 && gehobene.length === 0) {
-    // Score comes from vocab richness, not gehobene detection
-    // This is fine — differenzierter Wortschatz
-  }
-  // Boost if gehobene detected
-  if (gehobene.length >= 3) wortschatzRaw = Math.max(wortschatzRaw, 11);
+  // Boost if gehobene detected (scaled for 200+ words)
+  if (gehobene.length >= 5) wortschatzRaw = Math.max(wortschatzRaw, 13);
+  else if (gehobene.length >= 3) wortschatzRaw = Math.max(wortschatzRaw, 11);
+  else if (gehobene.length >= 2) wortschatzRaw = Math.max(wortschatzRaw, 9);
   else if (gehobene.length >= 1) wortschatzRaw = Math.max(wortschatzRaw, 7);
   wortschatzRaw = Math.min(wortschatzRaw, 15);
 
   // ═══ GAMING PENALTY ═══
-  // Only applied for clearly broken/nonsensical text
-  let gamingMult = 1;
-  if (avgSinn < 0.2) gamingMult = 0.1;
-  else if (avgSinn < 0.3) gamingMult = 0.3;
-  else if (avgSinn < 0.4) gamingMult = 0.6;
-  // avgSinn >= 0.4 → no penalty at all
+  // Unified: use anti-gaming module's penalty as single source of truth
+  const gaming = tiefesAntiGaming(text);
+  const gamingMult = gaming.penalty; // 0-1 from anti-gaming.js
 
   const punkte = {
     situationsbezug: round1(situScore * gamingMult),
@@ -162,7 +156,7 @@ export function berechneAlleKategorien(text, situation) {
     punkte, mittel, gehobene, wortAnzahl,
     avgSinn: round2(avgSinn),
     kohaerenz: round2(kohaerenz),
-    situMatch, wortschatzDetails: wortschatz.details, diskurs,
+    situMatch, wortschatzDetails: wortschatz.details, diskurs, gaming,
   };
 }
 
@@ -271,11 +265,17 @@ export async function kiBewertung(situation, antwort) {
   const text = antwort.trim();
   let kiError = null;
 
-  // Try AI scoring first (Ollama → Groq)
+  // Try AI scoring first (Ollama → Groq) with 30s timeout
+  const AI_TIMEOUT_MS = 30000;
   if (hasAiProvider()) {
     try {
       console.log('[ELOQUENT] Starte KI-Bewertung...');
-      const result = await aiBewerung(situation, text);
+      const result = await Promise.race([
+        aiBewerung(situation, text),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('KI-Bewertung Timeout (30s)')), AI_TIMEOUT_MS)
+        ),
+      ]);
       result._methode = 'ki';
       console.log(`[ELOQUENT] KI-Bewertung erfolgreich! (${result._provider}/${result._model})`);
       return result;
@@ -291,10 +291,10 @@ export async function kiBewertung(situation, antwort) {
   await new Promise(r => setTimeout(r, 300 + Math.random() * 300));
 
   try {
-    const gaming = tiefesAntiGaming(text);
-    if (gaming.isGaming) {
-      const gamingGrund = gaming.flags.length > 0
-        ? `Gaming erkannt: ${gaming.flags.map(f => f.replace(/_/g, ' ')).join(', ')}.`
+    const analyse = berechneAlleKategorien(text, situation);
+    if (analyse.gaming.isGaming) {
+      const gamingGrund = analyse.gaming.flags.length > 0
+        ? `Gaming erkannt: ${analyse.gaming.flags.map(f => f.replace(/_/g, ' ')).join(', ')}.`
         : "Der Text konnte nicht sinnvoll bewertet werden.";
       return {
         kategorien: {
@@ -319,8 +319,6 @@ export async function kiBewertung(situation, antwort) {
         _kiError: kiError,
       };
     }
-
-    const analyse = berechneAlleKategorien(text, situation);
     const { punkte, mittel, gehobene } = analyse;
     const fb = feedbackMap(punkte, mittel, gehobene);
 

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { SITUATIONEN } from '../data/situationen.js';
+import { SITUATIONEN, SITUATION_KATEGORIEN, SITUATIONEN_NACH_KATEGORIE } from '../data/situationen.js';
 import { kiBewertung } from '../engine/scoring-engine.js';
 import { Button } from '../components/Button.jsx';
 import { Card } from '../components/Card.jsx';
@@ -11,6 +11,7 @@ export function DuellPage({ onNavigate }) {
   const [phase, setPhase] = useState("setup");
   const [s1, setS1] = useState("");
   const [s2, setS2] = useState("");
+  const [kategorie, setKategorie] = useState(null); // null = Zufall
   const [runde, setRunde] = useState(1);
   const [situation, setSituation] = useState(null);
   const [ergebnis1, setErgebnis1] = useState(null);
@@ -22,7 +23,12 @@ export function DuellPage({ onNavigate }) {
 
   const getSituation = (r) => {
     const diff = r <= 1 ? "leicht" : r <= 2 ? "mittel" : "schwer";
-    const pool = SITUATIONEN[diff];
+    let pool;
+    if (kategorie && SITUATIONEN_NACH_KATEGORIE?.[kategorie]?.[diff]) {
+      pool = SITUATIONEN_NACH_KATEGORIE[kategorie][diff];
+    } else {
+      pool = SITUATIONEN[diff];
+    }
     const ungespielte = pool.filter(s => !gespielteRef.current.has(s.titel));
     const chosen = ungespielte.length > 0
       ? ungespielte[Math.floor(Math.random() * ungespielte.length)]
@@ -31,16 +37,30 @@ export function DuellPage({ onNavigate }) {
     return chosen;
   };
 
-  const startDuell = () => {
+  const goToCategory = () => {
     if (!s1.trim() || !s2.trim()) return;
     if (s1.trim().toLowerCase() === s2.trim().toLowerCase()) return;
+    setPhase("category");
+  };
+
+  const startDuell = (kat) => {
+    setKategorie(kat);
     gespielteRef.current = new Set();
-    const sit = getSituation(1);
-    setSituation(sit);
     setRunde(1);
-    setPhase("s1_write");
     setScores({ s1: 0, s2: 0, r1: 0, r2: 0 });
     setHistory([]);
+    // Need to compute situation after setting kategorie — use kat directly
+    const diff = "leicht";
+    let pool;
+    if (kat && SITUATIONEN_NACH_KATEGORIE?.[kat]?.[diff]) {
+      pool = SITUATIONEN_NACH_KATEGORIE[kat][diff];
+    } else {
+      pool = SITUATIONEN[diff];
+    }
+    const chosen = pool[Math.floor(Math.random() * pool.length)];
+    gespielteRef.current.add(chosen.titel);
+    setSituation(chosen);
+    setPhase("s1_write");
   };
 
   const SKIP_ERGEBNIS = {
@@ -57,6 +77,7 @@ export function DuellPage({ onNavigate }) {
   const handleS1Submit = (text) => {
     setErgebnis1(text === null ? { text: null, skipped: true } : { text });
     setPhase("s1_pass");
+    window.scrollTo(0, 0);
   };
 
   const handleS2Submit = async (text) => {
@@ -116,11 +137,35 @@ export function DuellPage({ onNavigate }) {
               </div>
             </div>
             <div style={{ textAlign: "center", marginTop: 28 }}>
-              <Button variant="gold" onClick={startDuell} disabled={!s1.trim() || !s2.trim() || s1.trim().toLowerCase() === s2.trim().toLowerCase()}>
-                ⚔️ Duell starten
+              <Button variant="gold" onClick={goToCategory} disabled={!s1.trim() || !s2.trim() || s1.trim().toLowerCase() === s2.trim().toLowerCase()}>
+                Weiter zur Kategorie →
               </Button>
             </div>
           </Card>
+        </div>
+      )}
+
+      {phase === "category" && (
+        <div className="animate-in">
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <h2 className="serif" style={{ fontSize: 28, fontWeight: 900, color: "var(--gold)" }}>Kategorie wählen</h2>
+            <p style={{ color: "var(--text-dim)", marginTop: 8 }}>{s1} vs {s2} — In welchem Feld messt ihr euch?</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
+            {(SITUATION_KATEGORIEN || []).map(kat => (
+              <Card key={kat.id} onClick={() => startDuell(kat.id)}
+                style={{ cursor: "pointer", textAlign: "center", padding: "16px 12px", transition: "border-color 0.2s" }}
+              >
+                <div style={{ fontSize: 28, marginBottom: 6 }}>{kat.emoji}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{kat.label}</div>
+              </Card>
+            ))}
+          </div>
+          <div style={{ textAlign: "center" }}>
+            <Button variant="gold" onClick={() => startDuell(null)}>
+              🎲 Zufällige Kategorie
+            </Button>
+          </div>
         </div>
       )}
 
@@ -146,7 +191,7 @@ export function DuellPage({ onNavigate }) {
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔄</div>
           <h2 className="serif" style={{ fontSize: 28, color: "var(--text)", marginBottom: 12 }}>Gerät weitergeben</h2>
           <p style={{ color: "var(--text-dim)", marginBottom: 32 }}>Bitte an <strong style={{ color: "var(--accent)" }}>{s2}</strong> übergeben.</p>
-          <Button variant="accent" onClick={() => setPhase("s2_write")}>
+          <Button variant="accent" onClick={() => { setPhase("s2_write"); window.scrollTo(0, 0); }}>
             {s2} ist bereit →
           </Button>
         </div>

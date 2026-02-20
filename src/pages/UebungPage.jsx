@@ -1,20 +1,37 @@
 import { useState } from 'react';
-import { SITUATIONEN } from '../data/situationen.js';
+import { SITUATIONEN, SITUATION_KATEGORIEN, SITUATIONEN_NACH_KATEGORIE } from '../data/situationen.js';
 import { kiBewertung } from '../engine/scoring-engine.js';
 import { Card } from '../components/Card.jsx';
+import { Button } from '../components/Button.jsx';
 import { BewertungDisplay } from '../components/BewertungDisplay.jsx';
 import { AntwortEingabe } from '../components/AntwortEingabe.jsx';
 
 export function UebungPage() {
   const [phase, setPhase] = useState("choose");
+  const [kategorie, setKategorie] = useState(null);
   const [situation, setSituation] = useState(null);
   const [schwierigkeit, setSchwierigkeit] = useState("mittel");
   const [ergebnis, setErgebnis] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const chooseDiff = (kat) => {
+    setKategorie(kat);
+    setPhase("difficulty");
+  };
+
   const start = (diff) => {
     const actualDiff = diff || ["leicht", "mittel", "schwer"][Math.floor(Math.random() * 3)];
-    const pool = diff ? SITUATIONEN[diff] : [...SITUATIONEN.leicht, ...SITUATIONEN.mittel, ...SITUATIONEN.schwer];
+    let pool;
+    if (kategorie && SITUATIONEN_NACH_KATEGORIE?.[kategorie]) {
+      pool = diff ? (SITUATIONEN_NACH_KATEGORIE[kategorie][diff] || []) : [
+        ...(SITUATIONEN_NACH_KATEGORIE[kategorie].leicht || []),
+        ...(SITUATIONEN_NACH_KATEGORIE[kategorie].mittel || []),
+        ...(SITUATIONEN_NACH_KATEGORIE[kategorie].schwer || []),
+      ];
+    } else {
+      pool = diff ? SITUATIONEN[diff] : [...SITUATIONEN.leicht, ...SITUATIONEN.mittel, ...SITUATIONEN.schwer];
+    }
+    if (pool.length === 0) pool = SITUATIONEN[actualDiff] || SITUATIONEN.mittel;
     setSituation(pool[Math.floor(Math.random() * pool.length)]);
     setSchwierigkeit(actualDiff);
     setErgebnis(null);
@@ -48,11 +65,35 @@ export function UebungPage() {
       {phase === "choose" && (
         <div className="animate-in" style={{ textAlign: "center" }}>
           <h1 className="serif" style={{ fontSize: 32, fontWeight: 900, color: "var(--green)", marginBottom: 8 }}>🎯 Übungsmodus</h1>
-          <p style={{ color: "var(--text-dim)", marginBottom: 32 }}>Trainiere ohne Druck. Bekomme KI-Feedback.</p>
+          <p style={{ color: "var(--text-dim)", marginBottom: 28 }}>Wähle eine Kategorie. Trainiere ohne Druck.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10, maxWidth: 560, margin: "0 auto 20px" }}>
+            {(SITUATION_KATEGORIEN || []).map(kat => (
+              <Card key={kat.id} onClick={() => chooseDiff(kat.id)}
+                style={{ cursor: "pointer", textAlign: "center", padding: "14px 10px" }}
+              >
+                <div style={{ fontSize: 24, marginBottom: 4 }}>{kat.emoji}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{kat.label}</div>
+              </Card>
+            ))}
+          </div>
+          <Button variant="ghost" onClick={() => chooseDiff(null)}>
+            🎲 Zufällige Kategorie
+          </Button>
+        </div>
+      )}
+
+      {phase === "difficulty" && (
+        <div className="animate-in" style={{ textAlign: "center" }}>
+          <h2 className="serif" style={{ fontSize: 28, fontWeight: 900, color: "var(--green)", marginBottom: 8 }}>Schwierigkeit wählen</h2>
+          {kategorie && SITUATION_KATEGORIEN && (
+            <p style={{ color: "var(--text-dim)", marginBottom: 28 }}>
+              {SITUATION_KATEGORIEN.find(k => k.id === kategorie)?.emoji} {SITUATION_KATEGORIEN.find(k => k.id === kategorie)?.label}
+            </p>
+          )}
           <div style={{ display: "grid", gap: 12, maxWidth: 360, margin: "0 auto" }}>
             {[
-              { label: "🟢 Leicht", diff: "leicht", desc: "Alltagsthemen" },
-              { label: "🟡 Mittel", diff: "mittel", desc: "Philosophische Fragen" },
+              { label: "🟢 Leicht", diff: "leicht", desc: "Lockere Alltagsthemen" },
+              { label: "🟡 Mittel", diff: "mittel", desc: "Anspruchsvollere Aufgaben" },
               { label: "🔴 Schwer", diff: "schwer", desc: "Reden & Plädoyers" },
               { label: "🎲 Zufall", diff: null, desc: "Überrasch mich" },
             ].map(o => (
@@ -66,6 +107,9 @@ export function UebungPage() {
                 </div>
               </Card>
             ))}
+          </div>
+          <div style={{ marginTop: 16 }}>
+            <Button variant="ghost" onClick={() => setPhase("choose")}>← Zurück</Button>
           </div>
         </div>
       )}
@@ -81,7 +125,7 @@ export function UebungPage() {
             <h2 className="serif" style={{ fontSize: 24, color: "var(--gold)" }}>KI analysiert deine Antwort...</h2>
           </div>
         ) : (
-          <BewertungDisplay ergebnis={ergebnis} onWeiter={() => setPhase("choose")} />
+          <BewertungDisplay ergebnis={ergebnis} onWeiter={() => { setKategorie(null); setPhase("choose"); }} />
         )
       )}
     </div>

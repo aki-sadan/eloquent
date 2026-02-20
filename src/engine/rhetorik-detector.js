@@ -167,11 +167,11 @@ export function erkenneRhetorischeMittel(text) {
 
   // 4. Antithese
   const antithesePatterns = [
-    { re: /nicht\s+nur\s+.{3,60}sondern\s+(auch\s+)?/i, name: "nicht nur...sondern" },
-    { re: /einerseits\s+.{3,80}andererseits/i, name: "einerseits...andererseits" },
-    { re: /weder\s+.{3,60}noch\s+/i, name: "weder...noch" },
-    { re: /zwar\s+.{3,60}(aber|jedoch|doch)\s+/i, name: "zwar...aber" },
-    { re: /auf\s+der\s+einen\s+seite.{5,80}auf\s+der\s+anderen/i, name: "auf der einen/anderen Seite" },
+    { re: /nicht\s+nur\s+[\wäöüÄÖÜß\s,]{3,60}sondern\s+(auch\s+)?/i, name: "nicht nur...sondern" },
+    { re: /einerseits\s+[\wäöüÄÖÜß\s,]{3,80}andererseits/i, name: "einerseits...andererseits" },
+    { re: /weder\s+[\wäöüÄÖÜß\s,]{3,60}noch\s+/i, name: "weder...noch" },
+    { re: /zwar\s+[\wäöüÄÖÜß\s,]{3,60}(aber|jedoch|doch)\s+/i, name: "zwar...aber" },
+    { re: /auf\s+der\s+einen\s+seite[\wäöüÄÖÜß\s,]{5,80}auf\s+der\s+anderen/i, name: "auf der einen/anderen Seite" },
     { re: /im\s+gegensatz\s+(zu|dazu)/i, name: "im Gegensatz zu" },
   ];
   for (const { re, name } of antithesePatterns) {
@@ -219,7 +219,10 @@ export function erkenneRhetorischeMittel(text) {
     for (let i = 0; i < woerter.length - 1; i++) {
       const a = woerter[i][0]?.toLowerCase();
       const b = woerter[i + 1][0]?.toLowerCase();
-      if (a && a === b && /[a-zäöüß]/.test(a) && woerter[i].length > 3 && woerter[i + 1].length > 3 && !FUNKTIONS_WOERTER.has(woerter[i].toLowerCase())) {
+      if (a && a === b && /[a-zäöüß]/.test(a)
+          && woerter[i].length > 4 && woerter[i + 1].length > 4
+          && !FUNKTIONS_WOERTER.has(woerter[i].toLowerCase())
+          && !FUNKTIONS_WOERTER.has(woerter[i + 1].toLowerCase())) {
         mittel.push({ name: "Alliteration", beispiel: `${woerter[i]} ${woerter[i + 1]}`, warum: "Gleiche Anfangslaute erzeugen Klang und Rhythmus." });
         break;
       }
@@ -260,9 +263,38 @@ export function erkenneRhetorischeMittel(text) {
     mittel.push({ name: "Parenthese", beispiel: parentheseMatch[0].slice(0, 60), warum: "Einschübe fügen ergänzende Gedanken ein und zeigen Reflexionsvermögen." });
   }
 
-  // 11. Chiasmus
-  if (/\bnicht\s+[\wäöüß]+\s+[\wäöüß]+,?\s+sondern\s+[\wäöüß]+\s+[\wäöüß]+/i.test(text)) {
-    mittel.push({ name: "Chiasmus", beispiel: "Kreuzstellung erkannt", warum: "Die Überkreuzung von Satzteilen erzeugt einen eleganten rhetorischen Kontrast." });
+  // 11. Chiasmus — verify A-B / B-A word structure
+  const chiasmusMatch = text.match(/\bnicht\s+([\wäöüß]+)\s+([\wäöüß]+),?\s+sondern\s+([\wäöüß]+)\s+([\wäöüß]+)/i);
+  if (chiasmusMatch) {
+    const [, a, b, c, d] = chiasmusMatch;
+    const aL = a.toLowerCase(), bL = b.toLowerCase(), cL = c.toLowerCase(), dL = d.toLowerCase();
+    // True chiasmus: A-B / B-A (word reversal) or at least B matches C or A matches D
+    const isChiasmus = (aL === dL && bL === cL) || // perfect A-B-B-A
+      (bL.slice(0, 4) === cL.slice(0, 4) && bL.length >= 4) || // B≈C (semantic reversal)
+      (aL.slice(0, 4) === dL.slice(0, 4) && aL.length >= 4);   // A≈D (semantic reversal)
+    if (isChiasmus) {
+      mittel.push({ name: "Chiasmus", beispiel: chiasmusMatch[0].slice(0, 80), warum: "Die Überkreuzung von Satzteilen erzeugt einen eleganten rhetorischen Kontrast." });
+    }
+  }
+  // Broader chiasmus: comma-separated clauses with reversed structure
+  if (!mittel.some(m => m.name === "Chiasmus")) {
+    for (let i = 0; i < saetze.length; i++) {
+      const parts = saetze[i].split(/[,;–—]+/).map(p => p.trim()).filter(p => p.length > 3);
+      for (let j = 0; j < parts.length - 1; j++) {
+        const w1 = tokenize(parts[j]).filter(w => !FUNKTIONS_WOERTER.has(w) && w.length > 3);
+        const w2 = tokenize(parts[j + 1]).filter(w => !FUNKTIONS_WOERTER.has(w) && w.length > 3);
+        if (w1.length >= 2 && w2.length >= 2) {
+          const first1 = w1[0], last1 = w1[w1.length - 1];
+          const first2 = w2[0], last2 = w2[w2.length - 1];
+          // A...B / B...A pattern
+          if (first1 === last2 && last1 === first2) {
+            mittel.push({ name: "Chiasmus", beispiel: parts[j].slice(0, 40) + " / " + parts[j + 1].slice(0, 40), warum: "Überkreuzung der Wortstellung (A-B / B-A) erzeugt rhetorische Eleganz." });
+            break;
+          }
+        }
+      }
+      if (mittel.some(m => m.name === "Chiasmus")) break;
+    }
   }
 
   // 12. Ellipse
