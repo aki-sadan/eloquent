@@ -215,6 +215,7 @@ export function semantischerSituationsmatch(situation, text) {
   const inhalt = new Set(tokenize(text).filter(w => !FUNKTIONS_WOERTER.has(w) && w.length > 3));
   let best = { feld: null, score: 0, hits: [] };
 
+  // 1. Semantic field matching (20% weight)
   for (const [name, woerter] of Object.entries(SEMANTISCHE_FELDER)) {
     const hits = [];
     for (const fw of woerter) {
@@ -226,13 +227,38 @@ export function semantischerSituationsmatch(situation, text) {
     if (sc > best.score) best = { feld: name, score: sc, hits };
   }
 
+  // 2. Direct title/description matching (30% weight)
   const titelT = tokenize(situation.titel).filter(w => w.length > 3 && !FUNKTIONS_WOERTER.has(w));
   const beschT = tokenize(situation.beschreibung).filter(w => w.length > 4 && !FUNKTIONS_WOERTER.has(w));
   let dh = 0;
   for (const kw of [...titelT, ...beschT]) for (const iw of inhalt) { if (iw.includes(kw) || kw.includes(iw)) { dh++; break; } }
   const ds = Math.min(dh / Math.max(titelT.length + beschT.length * 0.3, 1), 1);
 
-  return { punkte: Math.min(Math.round(Math.max(best.score, ds * 0.8) * 180) / 10, 15), feldMatch: best.feld, semantischeHits: best.hits.length, direkteHits: dh };
+  // 3. Schlüsselwort matching (50% weight) — uses per-situation keywords if available
+  let kwScore = 0;
+  let kwHits = 0;
+  if (situation.schluesselwoerter && situation.schluesselwoerter.length > 0) {
+    for (const kw of situation.schluesselwoerter) {
+      const kwLow = kw.toLowerCase();
+      for (const iw of inhalt) {
+        if (iw.includes(kwLow) || kwLow.includes(iw)) { kwHits++; break; }
+      }
+    }
+    kwScore = kwHits / situation.schluesselwoerter.length;
+  }
+
+  // Weighted combination: schluesselwoerter 50%, direct 30%, semantic 20%
+  const combined = situation.schluesselwoerter?.length > 0
+    ? kwScore * 0.5 + ds * 0.3 + best.score * 0.2
+    : Math.max(best.score, ds * 0.8); // fallback for situations without keywords
+
+  return {
+    punkte: Math.min(Math.round(combined * 180) / 10, 15),
+    feldMatch: best.feld,
+    semantischeHits: best.hits.length,
+    direkteHits: dh,
+    kwHits,
+  };
 }
 
 // ──────────────────────────────────────────────────────
@@ -249,8 +275,11 @@ export function findeGehobeneWoerter(text) {
     if (lower.includes(wLow)) {
       gefunden.push(wort);
     } else {
-      const stamm = wLow.slice(0, Math.max(wLow.length - 2, 4));
-      if (tokens.some(t => t.toLowerCase().startsWith(stamm) && t.length >= stamm.length)) {
+      const stamm = wLow.slice(0, Math.max(wLow.length - 2, 5));
+      if (stamm.length >= 5 && tokens.some(t => {
+        const tLow = t.toLowerCase();
+        return tLow.startsWith(stamm) && tLow.length >= stamm.length && tLow.length <= wLow.length + 3;
+      })) {
         gefunden.push(wort);
       }
     }
@@ -315,7 +344,11 @@ export function analysiereWortschatz(text, gehobene) {
   score += Math.min(komposita.length * 0.5, 1);
   score += Math.min(fremdwoerter.length * 0.5, 1.5);
   score += Math.min((avgLen - 4) * 0.8, 2);
-  score += Math.min(gehobene.length * 1.5, 5);
+  // Gehobene scaling: 5+=5, 3+=3.5, 2+=2.5, 1+=1.5
+  if (gehobene.length >= 5) score += 5;
+  else if (gehobene.length >= 3) score += 3.5;
+  else if (gehobene.length >= 2) score += 2.5;
+  else if (gehobene.length >= 1) score += 1.5;
   if (rareWordRatio >= 0.7) score += 3;
   else if (rareWordRatio >= 0.5) score += 2;
   else if (rareWordRatio >= 0.3) score += 1;
@@ -323,12 +356,13 @@ export function analysiereWortschatz(text, gehobene) {
   else if (normEntropie >= 0.8) score += 1;
   else if (normEntropie >= 0.7) score += 0.5;
 
+  // Category diversity bonus (scaled for 200+ words across 16 categories)
   const katSet = new Set();
   gehobene.forEach(gw => {
     const entry = WOERTERBUCH.find(w => w.wort.toLowerCase() === gw.toLowerCase());
     if (entry) katSet.add(entry.kategorie);
   });
-  score += Math.min(katSet.size * 0.5, 1.5);
+  score += Math.min(katSet.size * 0.7, 2.5);
 
   return {
     score: Math.min(Math.round(score * 10) / 10, 15),
