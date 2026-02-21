@@ -1,173 +1,203 @@
 // ──────────────────────────────────────────────────────
-// ELOQUENT — KI-Bewertung (Ollama lokal + Groq Cloud)
-// Ollama: kostenlos, lokal, kein API-Key
-// Groq: kostenlos, schnell, Llama 3.3 70B
+// ELOQUENT — KI-Bewertung (2-Agenten-System)
+// Schritt 1: Research-Agent (Textanalyse)
+// Schritt 2: Bewertungs-Agent (Scoring auf Basis der Analyse)
+// Provider: Ollama (lokal) + Groq (Cloud)
 // ──────────────────────────────────────────────────────
 
 const OLLAMA_URL = 'http://localhost:11434';
 const GROQ_PROXY = '/api/groq'; // Vite proxy → api.groq.com
 
-const SCORING_PROMPT = `Du bist ein erfahrener Germanistik-Professor mit 30 Jahren Erfahrung in Rhetorik-Bewertung. Du bewertest Spielerantworten im Eloquenz-Spiel ELOQUENT. Deine Bewertungen sind KONSISTENT, FAIR, STRENG und NACHVOLLZIEHBAR.
+// ──────────────────────────────────────────────────────
+// Schritt 1: Research-Agent — Reine Textanalyse
+// ──────────────────────────────────────────────────────
 
-═══ SITUATION ═══
-Titel: {titel}
-Kontext: {kontext}
-Beschreibung: {beschreibung}
+const RESEARCH_PROMPT = `Analysiere diesen deutschen Text. Vergib KEINE Punkte. Sammle nur Fakten.
 
-═══ ANTWORT DES SPIELERS ═══
-"{antwort}"
+SITUATION: {titel} — {kontext}. {beschreibung}
 
-═══ BEWERTUNGSKATEGORIEN (100 Punkte gesamt) ═══
+TEXT: "{antwort}"
 
-1. SITUATIONSBEZUG (0-15)
-   Wie direkt und inhaltlich treffend bezieht sich die Antwort auf die gestellte Situation?
-   • 0-3: Kein oder kaum erkennbarer Bezug zur Situation
-   • 4-7: Oberflächlicher Bezug, Thema wird angeschnitten aber nicht vertieft
-   • 8-11: Guter Bezug, die Antwort geht auf die Kernfrage ein
-   • 12-15: Exzellenter Bezug, die Antwort durchdringt die Situation tiefgründig
+Aufgaben:
 
-2. WORTVIELFALT (0-15)
-   Wie abwechslungsreich und präzise ist die Wortwahl?
-   • 0-3: Viele Wiederholungen, einfache Alltagssprache
-   • 4-7: Einige Variation, aber noch zu viele Wiederholungen
-   • 8-11: Abwechslungsreich, gute Synonymverwendung
-   • 12-15: Herausragend vielfältig, jedes Wort sitzt präzise
+1. STILMITTEL suchen. Kopiere das EXAKTE Zitat aus dem Text.
+Beispiel: Text ist "Die Zeit fliegt davon" → name: "Personifikation", zitat: "Die Zeit fliegt davon"
+Beispiel: Text ist "nicht um zu klagen, sondern um zu handeln" → name: "Antithese", zitat: "nicht um zu klagen, sondern um zu handeln"
+Mögliche Stilmittel: Metapher, Vergleich, Personifikation, Antithese, Trikolon, Chiasmus, Klimax, Anapher, rhetorische Frage, Alliteration, Hyperbel.
+REGEL: Wenn du kein exaktes Zitat hast, liste das Mittel NICHT auf.
 
-3. RHETORIK (0-25) — Die wichtigste Kategorie
-   Welche rhetorischen Mittel werden TATSÄCHLICH eingesetzt? Zähle NUR Mittel, die du im Text mit einem EXAKTEN ZITAT nachweisen kannst.
-   Erkennbare Mittel: Metapher, Vergleich ("wie"), Personifikation, Antithese, Trikolon (Dreierfigur), Chiasmus (Kreuzstellung), Klimax (Steigerung), Anapher (Wiederholung am Satzanfang), rhetorische Frage, Alliteration, Hyperbel (Übertreibung), Oxymoron, Parenthese, Ellipse.
-   • 0-5: Keine oder ein einfaches Mittel
-   • 6-12: 2-3 verschiedene Mittel, bewusst eingesetzt
-   • 13-18: 4+ Mittel, geschickt verwoben
-   • 19-25: Meisterhafte rhetorische Gestaltung mit vielen Mitteln
+2. GEHOBENE WÖRTER finden. Nur Wörter die WÖRTLICH im Text stehen.
+Gehobene Wörter sind z.B.: erachten, Privileg, renommiert, außerordentlich, mannigfaltig, Resilienz, nichtsdestotrotz, gleichwohl, eloquent, prädestiniert, erörtern, sublim, indes, vermögen (im Sinne von "können"), gewahr, obliegen, anmuten.
+Auch gehobene Adjektive und Substantive zählen: "bemerkenswert", "Wertschätzung", "Gegenüber" etc.
 
-4. WORTSCHATZ (0-15)
-   Wie gehoben und differenziert ist das sprachliche Niveau?
-   • 0-3: Nur Grundwortschatz, umgangssprachlich
-   • 4-7: Solider Wortschatz, vereinzelt gehobene Ausdrücke
-   • 8-11: Differenziert, mehrere gehobene/seltene Wörter
-   • 12-15: Exquisiter Wortschatz mit Fachbegriffen, Fremdwörtern, gehobenen Ausdrücken
+3. SATZSTRUKTUR: Wie viele Sätze? Gibt es Nebensätze? Gibt es Konnektoren (weil, da, deshalb, jedoch)?
 
-5. ARGUMENTATION (0-15)
-   Wie logisch und überzeugend ist die Gedankenführung?
-   • 0-3: Keine erkennbare Argumentation, lose Behauptungen
-   • 4-7: Grundlegende Struktur erkennbar (weil, da, daher)
-   • 8-11: Klare Argumentation mit Begründungen und Schlussfolgerungen
-   • 12-15: Brillante Argumentationskette, jeder Gedanke baut auf dem vorherigen auf
+4. SITUATIONSBEZUG: Passt der Text zur beschriebenen Situation? Was genau bezieht sich darauf?
 
-6. KREATIVITÄT (0-10)
-   Wie originell und bildreich ist die Sprache?
-   • 0-2: Vorhersagbar, keine originellen Formulierungen
-   • 3-5: Einzelne kreative Wendungen
-   • 6-8: Durchgehend originelle, bildhafte Sprache
-   • 9-10: Außergewöhnlich kreativ, überraschende Perspektiven
+5. ARGUMENTATION: Gibt es Begründungen (weil, da, denn)? Gibt es eine These und Schlussfolgerung? Wenn der Text eine Begrüßung/Rede ohne Argument ist, schreibe "keine Argumentation nötig".
 
-7. TEXTSTRUKTUR (0-5)
-   Wie kohärent und gut gegliedert ist der Text?
-   • 0-1: Zusammenhanglos, keine Struktur
-   • 2-3: Grundstruktur vorhanden, könnte kohärenter sein
-   • 4-5: Klarer Aufbau mit Einleitung, Argumentation und Schluss
+6. KREATIVITÄT: Gibt es originelle Formulierungen? Bildsprache?
 
-═══ KONSISTENZ-ANKER (diese Regeln sind UNVERLETZLICH) ═══
-- Nur Hauptsätze + Alltagswortschatz → MAXIMAL 40 Punkte gesamt
-- 1 Stilmittel + solider Wortschatz → 35-50 Punkte
-- 2-3 Stilmittel + guter Wortschatz → 45-65 Punkte
-- 3+ verschiedene Stilmittel + gehobener Wortschatz → 60-80 Punkte möglich
-- 80+ Punkte erfordern Meisterschaft in mindestens 5 der 7 Kategorien
-- 90+ Punkte sind extrem selten und erfordern nahezu Perfektion
-- Prüfe IMMER: Passt die Gesamtpunktzahl zum Gesamteindruck des Textes?
+7. SPAM-CHECK: Ist der Text sinnvoll oder Keyword-Stuffing? Grammatisch korrekt?
 
-═══ SITUATIONS-SPEZIFISCHE GEWICHTUNG ═══
-- Formelle Situationen (Gericht, Parlament, Diplomatie, Bewerbung): Argumentation und Wortschatz besonders kritisch bewerten
-- Kreative Situationen (Literarischer Salon, Poesie, Kunst): Kreativität und Rhetorik besonders wichtig
-- Alltägliche Situationen (Gesellschaft, Alltag): Natürlichkeit und Situationsbezug besonders relevant
-- Die Maximalpunktzahlen bleiben gleich, aber die QUALITÄTSANFORDERUNG passt sich dem Kontext an
+Antworte NUR mit JSON:
+{
+  "mittel": [{"name": "Antithese", "zitat": "nicht um zu klagen, sondern um zu handeln"}],
+  "gehobene_woerter": ["erachten", "Privileg"],
+  "saetze": 3,
+  "nebensaetze": true,
+  "konnektoren": ["weil", "deshalb"],
+  "aufbau": "Einleitung und Argumentation",
+  "situationsbezug": "Ja, der Text geht direkt auf die Situation ein durch...",
+  "tonfall_passt": true,
+  "argumentation": "These X wird mit Y begründet",
+  "kreativ": "Die Formulierung X ist originell",
+  "ist_spam": false,
+  "grammatisch_ok": true
+}`;
 
-═══ KALIBRIERUNGSBEISPIELE (mit exakten Kategorie-Scores) ═══
+// ──────────────────────────────────────────────────────
+// Schritt 2: Bewertungs-Agent — Scoring auf Basis der Analyse
+// ──────────────────────────────────────────────────────
 
-BEISPIEL ~15 Punkte:
-"Bücher sind gut. Man kann viel lernen. Lesen ist toll."
-→ situationsbezug: 3, wortvielfalt: 2, rhetorik: 0, wortschatz: 1, argumentation: 3, kreativitaet: 1, textstruktur: 1
-→ Kein Stilmittel, Grundwortschatz, flache Aussagen ohne Tiefe.
+const BEWERTUNG_PROMPT = `Bewerte diesen Text für das Eloquenz-Spiel. Die Analyse wurde bereits gemacht — du musst NUR Punkte vergeben und Feedback schreiben.
 
-BEISPIEL ~28 Punkte:
-"Ich finde, Bücher sind wichtig, weil man durch sie viel lernen kann. Sie zeigen uns neue Welten und helfen uns, andere Menschen besser zu verstehen."
-→ situationsbezug: 5, wortvielfalt: 4, rhetorik: 3, wortschatz: 3, argumentation: 6, kreativitaet: 2, textstruktur: 3
-→ Grundlegende Argumentation (weil), keine echten Stilmittel, Alltagswortschatz.
+SITUATION: {titel} — {kontext}. {beschreibung}
+TEXT: "{antwort}"
 
-BEISPIEL ~46 Punkte:
-"Bücher sind Fenster in fremde Welten. Wer liest, der reist, ohne den Ort zu verlassen — und kehrt doch verändert zurück. Deshalb sollte jeder Mensch lesen."
-→ situationsbezug: 7, wortvielfalt: 6, rhetorik: 10, wortschatz: 5, argumentation: 7, kreativitaet: 5, textstruktur: 4
-→ Metapher ("Fenster in fremde Welten"), Antithese ("reist, ohne den Ort zu verlassen"), guter Aufbau.
+ANALYSE-ERGEBNISSE:
+{research}
 
-BEISPIEL ~62 Punkte:
-"Ist es nicht die Literatur, die uns lehrt, was es bedeutet, Mensch zu sein? Sie hält uns einen Spiegel vor — nicht um zu urteilen, sondern um zu verstehen. Wer den Dialog mit dem geschriebenen Wort scheut, der beraubt sich der tiefsten Form der Selbsterkenntnis."
-→ situationsbezug: 10, wortvielfalt: 9, rhetorik: 15, wortschatz: 8, argumentation: 9, kreativitaet: 6, textstruktur: 4
-→ Rhetorische Frage, Metapher ("Spiegel"), Antithese ("urteilen/verstehen"), gehobener Wortschatz ("Selbsterkenntnis"), Klimax.
+PUNKTE VERGEBEN (100 Punkte gesamt):
 
-BEISPIEL ~76 Punkte:
-"Stellen wir uns vor, die Literatur sei ein zeitloser Kompass — nicht um uns den Weg zu weisen, sondern um uns die Frage zu stellen, ob wir überhaupt einen Weg gewählt haben. Denn in der Stille zwischen den Zeilen offenbart sich jene sublim Wahrheit, die kein Algorithmus zu berechnen vermag: dass der Mensch erst im Spiegel des Geschriebenen erkennt, wer er sein könnte. Nichtsdestotrotz bleibt die Lektüre ein Wagnis, da jedes Buch die Macht besitzt, unsere Überzeugungen zu erschüttern und gleichwohl unsere Resilienz zu stärken."
-→ situationsbezug: 12, wortvielfalt: 11, rhetorik: 18, wortschatz: 12, argumentation: 10, kreativitaet: 7, textstruktur: 4
-→ Metapher ("zeitloser Kompass", "Spiegel des Geschriebenen"), Antithese ("nicht um...sondern um"), rhetorische Frage implizit, Personifikation ("Buch besitzt die Macht"), gehobene Wörter ("sublim", "Resilienz", "nichtsdestotrotz", "gleichwohl").
+1. situationsbezug (0-15): Passt der Text zur Situation? Nutze "situationsbezug" aus der Analyse.
+2. wortvielfalt (0-15): Wie abwechslungsreich sind die Wörter? Wenig Wiederholungen = gut.
+3. rhetorik (0-25): Wie viele Stilmittel hat die Analyse gefunden? 0 Mittel=0-5, 1-2 Mittel=6-12, 3+ Mittel=13-18, 5+ Mittel=19-25.
+4. wortschatz (0-15): Wie viele gehobene Wörter hat die Analyse gefunden? 0=0-3, 1-2=4-7, 3-4=8-11, 5+=12-15.
+5. argumentation (0-15): Gibt es logische Begründungen? WICHTIG: Wenn der Text eine Begrüßung, Rede oder Ansprache ist und keine Argumentation braucht, vergib trotzdem 4-8 Punkte für die implizite Überzeugungskraft.
+6. kreativitaet (0-10): Originelle Formulierungen? Bildsprache?
+7. textstruktur (0-5): Guter Aufbau? Nebensätze? Konnektoren?
 
-BEISPIEL ~88 Punkte:
-Erfordert meisterhafte Kombination aus 5+ verschiedenen rhetorischen Mitteln, exquisitem Wortschatz mit 4+ gehobenen Wörtern, brillanter Argumentationskette, origineller Kreativität und perfekter Textstruktur. Extrem selten!
+KONSISTENZ:
+- Einfache Alltagssprache ohne Stilmittel → max 40 Punkte
+- 1-2 Stilmittel + einige gehobene Wörter → 40-55 Punkte
+- 2-3 Stilmittel + guter Wortschatz → 50-65 Punkte
+- 4+ Stilmittel + gehobener Wortschatz → 60-80 Punkte
 
-═══ ANTI-GAMING ═══
-- Keyword-Stuffing (wahllose gehobene Wörter ohne sinnvollen Zusammenhang) = max 10 Punkte
-- Kopierte Floskeln ohne Eigenleistung = max 20 Punkte
-- Grammatisch falsche Sätze reduzieren die Gesamtpunktzahl deutlich
-- Spam/Gibberish/Buchstabensalat = 0 Punkte
-- Text hat NICHTS mit der Situation zu tun = max 5 Punkte gesamt
+ANTI-GAMING: Wenn ist_spam=true → 0 Punkte. Wenn grammatisch_ok=false → Punkte stark reduzieren.
 
-═══ ANTI-HALLUZINATION (KRITISCH) ═══
-- "mittel.beispiel" MUSS ein EXAKTES Copy-Paste-Zitat aus dem Text sein — Wort für Wort!
-- Wenn du ein Stilmittel nicht mit einem EXAKTEN Zitat belegen kannst, zähle es NICHT
-- "gehobene" darf NUR Wörter enthalten, die BUCHSTÄBLICH im Text stehen
-- Erfinde KEINE Stilmittel oder gehobenen Wörter, die nicht im Text vorkommen
-- Im Zweifel lieber zu wenig anerkennen als zu viel — Fairness vor Großzügigkeit
+Übernimm die Stilmittel und gehobenen Wörter DIREKT aus der Analyse in dein JSON. Kopiere die Zitate und Wörter.
 
-═══ WICHTIG ═══
-- Qualität > Quantität: Ein perfekter Satz schlägt drei mittelmäßige
-- Sei STRENG bei Rhetorik: Zähle nur Mittel, die du mit exaktem Zitat belegen kannst
-- Sei FAIR bei Argumentation: Auch implizite Logik zählt
-- Das Feedback pro Kategorie soll dem Spieler KONKRET helfen, sich zu verbessern
-- Gib KONKRETE Verbesserungsvorschläge in den Tipps
-- ALLE 7 Kategorien MÜSSEN in deiner Antwort vorhanden sein
-- Punkte als ganze Zahlen oder mit maximal einer Dezimalstelle
+Bei "empfehlungen": Schlage 3 gehobene deutsche Wörter vor, die der Spieler NICHT verwendet hat, die aber zum Thema passen.
+Beispiel: {"wort": "erörtern", "bedeutung": "Ein Thema ausführlich besprechen. Beispiel: Lassen Sie uns diese Frage erörtern."}
 
-Antworte NUR mit gültigem JSON — kein Text davor, kein Text danach:
+Antworte NUR mit JSON:
 {
   "kategorien": {
-    "situationsbezug": { "p": 0, "f": "Konkretes Feedback" },
-    "wortvielfalt": { "p": 0, "f": "Konkretes Feedback" },
-    "rhetorik": { "p": 0, "f": "Konkretes Feedback mit Nennung gefundener Mittel" },
-    "wortschatz": { "p": 0, "f": "Konkretes Feedback mit Beispielen aus dem Text" },
-    "argumentation": { "p": 0, "f": "Konkretes Feedback zur Gedankenführung" },
-    "kreativitaet": { "p": 0, "f": "Konkretes Feedback zu originellen Stellen" },
-    "textstruktur": { "p": 0, "f": "Konkretes Feedback zum Aufbau" }
+    "situationsbezug": {"p": 10, "f": "Guter Bezug zur Situation, der Text geht auf X ein."},
+    "wortvielfalt": {"p": 8, "f": "Abwechslungsreiche Wortwahl mit X und Y."},
+    "rhetorik": {"p": 12, "f": "2 Stilmittel erkannt: Antithese und Metapher."},
+    "wortschatz": {"p": 8, "f": "Gehobene Wörter wie X und Y verwendet."},
+    "argumentation": {"p": 6, "f": "Grundlegende Struktur mit Begründung."},
+    "kreativitaet": {"p": 4, "f": "Originelle Formulierung bei X."},
+    "textstruktur": {"p": 3, "f": "Guter Aufbau mit Einleitung und Hauptteil."}
   },
-  "mittel": [{ "name": "Stilmittel-Name", "beispiel": "EXAKTES Zitat aus dem Text" }],
-  "gehobene": ["gehobenes_wort_1", "gehobenes_wort_2"],
-  "feedback": "2-3 Sätze Gesamteinschätzung: Was war stark? Was fehlt?",
-  "tipps": ["Konkreter Verbesserungstipp 1", "Konkreter Verbesserungstipp 2", "Konkreter Verbesserungstipp 3"],
+  "mittel": [{"name": "Antithese", "beispiel": "exaktes Zitat aus dem Text"}],
+  "gehobene": ["wort1", "wort2"],
+  "feedback": "2 Sätze: Was war gut? Was kann besser werden?",
+  "tipps": ["Konkreter Tipp 1", "Konkreter Tipp 2", "Konkreter Tipp 3"],
   "empfehlungen": [
-    { "wort": "Gehobenes Wort", "bedeutung": "Definition und Anwendungsbeispiel" },
-    { "wort": "Gehobenes Wort", "bedeutung": "Definition und Anwendungsbeispiel" },
-    { "wort": "Gehobenes Wort", "bedeutung": "Definition und Anwendungsbeispiel" }
+    {"wort": "erörtern", "bedeutung": "Ein Thema ausführlich besprechen. Beispiel: Lassen Sie uns diese Frage erörtern."},
+    {"wort": "indes", "bedeutung": "Jedoch, währenddessen. Beispiel: Indes bleibt die Frage offen."},
+    {"wort": "mannigfaltig", "bedeutung": "Vielfältig, reichhaltig. Beispiel: Die mannigfaltigen Aspekte dieses Themas."}
   ]
 }`;
 
-function buildPrompt(situation, antwort) {
-  return SCORING_PROMPT
+function buildResearchPrompt(situation, antwort) {
+  return RESEARCH_PROMPT
     .replace('{titel}', situation.titel || '')
     .replace('{kontext}', situation.kontext || '')
     .replace('{beschreibung}', situation.beschreibung || '')
     .replace('{antwort}', antwort);
 }
 
+function buildBewertungPrompt(situation, antwort, researchJson) {
+  return BEWERTUNG_PROMPT
+    .replace('{titel}', situation.titel || '')
+    .replace('{kontext}', situation.kontext || '')
+    .replace('{beschreibung}', situation.beschreibung || '')
+    .replace('{antwort}', antwort)
+    .replace('{research}', JSON.stringify(researchJson, null, 2));
+}
+
 // ──────────────────────────────────────────────────────
-// Ollama (local)
+// JSON Parsing Helper
+// ──────────────────────────────────────────────────────
+
+function parseJson(text, label) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    throw new Error(`${label}: JSON-Parsing fehlgeschlagen`);
+  }
+}
+
+// ──────────────────────────────────────────────────────
+// Low-Level API Calls
+// ──────────────────────────────────────────────────────
+
+async function callOllama(messages) {
+  const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: ollamaModel,
+      messages,
+      format: 'json',
+      stream: false,
+      options: { temperature: 0.1, num_predict: 2048 },
+    }),
+  });
+
+  if (!res.ok) throw new Error(`Ollama Fehler: ${res.status}`);
+  const data = await res.json();
+  const text = data.message?.content;
+  if (!text) throw new Error('Ollama: Keine Antwort');
+  return text;
+}
+
+async function callGroq(apiKey, messages) {
+  const res = await fetch(`${GROQ_PROXY}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      temperature: 0.15,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Groq Fehler (${res.status}): ${err.slice(0, 150)}`);
+  }
+
+  const data = await res.json();
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error('Groq: Keine Antwort');
+  return text;
+}
+
+// ──────────────────────────────────────────────────────
+// Ollama (local) — 2-Schritt
 // ──────────────────────────────────────────────────────
 
 let ollamaAvailable = null; // cached check
@@ -212,71 +242,61 @@ async function ollamaScore(situation, antwort) {
   }
   if (!ollamaAvailable) throw new Error('Ollama nicht verfügbar');
 
-  console.log(`[ELOQUENT KI] Ollama → ${ollamaModel}`);
-  const prompt = buildPrompt(situation, antwort);
+  // Schritt 1: Research-Agent
+  console.log(`[Research-Agent] Ollama → ${ollamaModel} — Textanalyse...`);
+  const researchPrompt = buildResearchPrompt(situation, antwort);
+  const researchText = await callOllama([
+    { role: 'system', content: 'Du bist ein Textanalyst. Antworte NUR mit JSON.' },
+    { role: 'user', content: researchPrompt },
+  ]);
 
-  // Kein AbortSignal.timeout — der KI so viel Zeit geben wie sie braucht
-  const res = await fetch(`${OLLAMA_URL}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: ollamaModel,
-      messages: [
-        { role: 'system', content: 'Du bist ein erfahrener Germanistik-Professor mit 30 Jahren Erfahrung in Rhetorik-Bewertung. SCORING-KALIBRIERUNG: Schwach: 10-25 | Durchschnittlich: 25-40 | Gut: 40-60 | Sehr gut: 60-75 | Exzellent: 75-90 | Meisterhaft: 90+ (extrem selten). Antworte AUSSCHLIESSLICH mit validem JSON.' },
-        { role: 'user', content: prompt },
-      ],
-      format: 'json',
-      stream: false,
-      options: { temperature: 0.1, num_predict: 2048 },
-    }),
+  const researchResult = parseJson(researchText, 'Research-Agent');
+  console.log(`[Research-Agent] Analyse abgeschlossen:`, {
+    mittel: researchResult.mittel?.length || 0,
+    gehobene: researchResult.gehobene_woerter?.length || 0,
   });
 
-  if (!res.ok) throw new Error(`Ollama Fehler: ${res.status}`);
-  const data = await res.json();
-  const text = data.message?.content;
-  if (!text) throw new Error('Ollama: Keine Antwort');
+  // Schritt 2: Bewertungs-Agent
+  console.log(`[Bewertungs-Agent] Ollama → ${ollamaModel} — Scoring...`);
+  const bewertungPrompt = buildBewertungPrompt(situation, antwort, researchResult);
+  const bewertungText = await callOllama([
+    { role: 'system', content: 'Du bist ein Bewertungs-Professor. Antworte NUR mit JSON.' },
+    { role: 'user', content: bewertungPrompt },
+  ]);
 
-  console.log('[ELOQUENT KI] Ollama Antwort erhalten');
-  return { text, provider: 'ollama', model: ollamaModel };
+  console.log('[Bewertungs-Agent] Scoring abgeschlossen');
+  return { text: bewertungText, provider: 'ollama', model: ollamaModel };
 }
 
 // ──────────────────────────────────────────────────────
-// Groq (cloud, free tier)
+// Groq (cloud, free tier) — 2-Schritt
 // ──────────────────────────────────────────────────────
 
 async function groqScore(apiKey, situation, antwort) {
-  console.log('[ELOQUENT KI] Groq → llama-3.3-70b-versatile');
-  const prompt = buildPrompt(situation, antwort);
+  // Schritt 1: Research-Agent
+  console.log('[Research-Agent] Groq → llama-3.3-70b-versatile — Textanalyse...');
+  const researchPrompt = buildResearchPrompt(situation, antwort);
+  const researchText = await callGroq(apiKey, [
+    { role: 'system', content: 'Du bist ein Textanalyst. Antworte NUR mit JSON.' },
+    { role: 'user', content: researchPrompt },
+  ]);
 
-  // Kein AbortSignal.timeout — der KI so viel Zeit geben wie sie braucht
-  const res = await fetch(`${GROQ_PROXY}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [
-        { role: 'system', content: 'Du bist ein erfahrener Germanistik-Professor mit 30 Jahren Erfahrung in Rhetorik-Bewertung. SCORING-KALIBRIERUNG: Schwach: 10-25 | Durchschnittlich: 25-40 | Gut: 40-60 | Sehr gut: 60-75 | Exzellent: 75-90 | Meisterhaft: 90+ (extrem selten). Antworte AUSSCHLIESSLICH mit validem JSON.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.15,
-      response_format: { type: 'json_object' },
-    }),
+  const researchResult = parseJson(researchText, 'Research-Agent');
+  console.log(`[Research-Agent] Analyse abgeschlossen:`, {
+    mittel: researchResult.mittel?.length || 0,
+    gehobene: researchResult.gehobene_woerter?.length || 0,
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Groq Fehler (${res.status}): ${err.slice(0, 150)}`);
-  }
+  // Schritt 2: Bewertungs-Agent
+  console.log('[Bewertungs-Agent] Groq → llama-3.3-70b-versatile — Scoring...');
+  const bewertungPrompt = buildBewertungPrompt(situation, antwort, researchResult);
+  const bewertungText = await callGroq(apiKey, [
+    { role: 'system', content: 'Du bist ein Bewertungs-Professor. Antworte NUR mit JSON.' },
+    { role: 'user', content: bewertungPrompt },
+  ]);
 
-  const data = await res.json();
-  const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error('Groq: Keine Antwort');
-
-  console.log('[ELOQUENT KI] Groq Antwort erhalten');
-  return { text, provider: 'groq', model: 'llama-3.3-70b-versatile' };
+  console.log('[Bewertungs-Agent] Scoring abgeschlossen');
+  return { text: bewertungText, provider: 'groq', model: 'llama-3.3-70b-versatile' };
 }
 
 // ──────────────────────────────────────────────────────
@@ -352,7 +372,7 @@ export async function aiBewerung(situation, antwort) {
     : situation;
 
   // Kaskade mit Retries: Ollama (3x) → Groq (3x) → Error
-  // Heuristik wird NICHT hier aktiviert, sondern nur als allerletzter Fallback in scoring-engine.js
+  // Retry umfasst den gesamten 2-Schritt-Prozess (Research + Bewertung)
 
   if (ollamaAvailable === null ||
       (ollamaAvailable === false && Date.now() - lastOllamaCheck > OLLAMA_RECHECK_INTERVAL)) {
