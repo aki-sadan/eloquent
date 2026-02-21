@@ -268,11 +268,14 @@ export function semantischerSituationsmatch(situation, text) {
 export function findeGehobeneWoerter(text) {
   const lower = text.toLowerCase();
   const tokens = tokenize(text);
+  const gesehen = new Set();
   const gefunden = [];
 
   for (const [wort] of GEHOBENE_WOERTER) {
     const wLow = wort.toLowerCase();
+    if (gesehen.has(wLow)) continue;
     if (lower.includes(wLow)) {
+      gesehen.add(wLow);
       gefunden.push(wort);
     } else {
       const stamm = wLow.slice(0, Math.max(wLow.length - 2, 5));
@@ -280,6 +283,7 @@ export function findeGehobeneWoerter(text) {
         const tLow = t.toLowerCase();
         return tLow.startsWith(stamm) && tLow.length >= stamm.length && tLow.length <= wLow.length + 3;
       })) {
+        gesehen.add(wLow);
         gefunden.push(wort);
       }
     }
@@ -287,12 +291,14 @@ export function findeGehobeneWoerter(text) {
 
   for (const entry of WOERTERBUCH) {
     const wLow = entry.wort.toLowerCase();
-    if (lower.includes(wLow) && !gefunden.includes(entry.wort)) {
+    if (gesehen.has(wLow)) continue;
+    if (lower.includes(wLow)) {
+      gesehen.add(wLow);
       gefunden.push(entry.wort);
     }
   }
 
-  return [...new Set(gefunden)];
+  return gefunden;
 }
 
 // ──────────────────────────────────────────────────────

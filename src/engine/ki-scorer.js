@@ -218,7 +218,7 @@ async function ollamaScore(situation, antwort) {
   const res = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(25000),
     body: JSON.stringify({
       model: ollamaModel,
       messages: [
@@ -250,6 +250,7 @@ async function groqScore(apiKey, situation, antwort) {
 
   const res = await fetch(`${GROQ_PROXY}/chat/completions`, {
     method: 'POST',
+    signal: AbortSignal.timeout(15000),
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,

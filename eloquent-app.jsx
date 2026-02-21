@@ -740,18 +740,22 @@ function erkenneRhetorischeMittel(text) {
 function findeGehobeneWoerter(text) {
   const lower = text.toLowerCase();
   const tokens = tokenize(text);
+  const gesehen = new Set();
   const gefunden = [];
 
   // Direkter Match in GEHOBENE_WOERTER Map
   for (const [wort] of GEHOBENE_WOERTER) {
     const wLow = wort.toLowerCase();
+    if (gesehen.has(wLow)) continue;
     // Exakter Match oder Stammvergleich
     if (lower.includes(wLow)) {
+      gesehen.add(wLow);
       gefunden.push(wort);
     } else {
       // Stammvergleich: prüfe ob ein Token den Wort-Stamm enthält
       const stamm = wLow.slice(0, Math.max(wLow.length - 2, 4));
       if (tokens.some(t => t.toLowerCase().startsWith(stamm) && t.length >= stamm.length)) {
+        gesehen.add(wLow);
         gefunden.push(wort);
       }
     }
@@ -760,12 +764,14 @@ function findeGehobeneWoerter(text) {
   // Auch Wörter aus dem WOERTERBUCH prüfen
   for (const entry of WOERTERBUCH) {
     const wLow = entry.wort.toLowerCase();
-    if (lower.includes(wLow) && !gefunden.includes(entry.wort)) {
+    if (gesehen.has(wLow)) continue;
+    if (lower.includes(wLow)) {
+      gesehen.add(wLow);
       gefunden.push(entry.wort);
     }
   }
 
-  return [...new Set(gefunden)];
+  return gefunden;
 }
 
 // ──────────────────────────────────────────────────────

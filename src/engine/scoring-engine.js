@@ -198,17 +198,117 @@ function generiereFeedback(analyse) {
   return teile.slice(0, 3).join(" ");
 }
 
-function generiereTipps(analyse) {
+// Situations-Kategorie aus dem Situationsobjekt ermitteln
+function ermittleKategorie(situation) {
+  if (!situation) return null;
+  if (situation.kategorie) return situation.kategorie;
+  if (situation._kategorie) return situation._kategorie;
+
+  const text = `${situation.titel || ''} ${situation.kontext || ''} ${situation.beschreibung || ''}`.toLowerCase();
+  const mapping = [
+    ['bewerbung', ['bewerbung', 'vorstellung', 'personalchef', 'lebenslauf', 'gehalt']],
+    ['geschaeft', ['geschäft', 'firma', 'unternehmen', 'verhandlung', 'investor']],
+    ['diplomatie', ['diplomat', 'botschafter', 'friedens', 'delegation', 'un-']],
+    ['gericht', ['gericht', 'richter', 'anwalt', 'verhandlung', 'urteil', 'jury']],
+    ['akademie', ['professor', 'universität', 'debatte', 'forschung', 'akadem']],
+    ['salon', ['salon', 'literarisch', 'dichter', 'lesung', 'roman']],
+    ['politik', ['politik', 'parlament', 'partei', 'wahl', 'minister']],
+    ['philosophie', ['philosoph', 'ethik', 'moral', 'existenz', 'sokrates']],
+    ['alltag', ['alltag', 'nachbar', 'café', 'fest', 'freund']],
+    ['geschichte', ['geschicht', 'historisch', 'revolution', 'jahrhundert', 'epoche']],
+    ['medizin', ['arzt', 'patient', 'klinik', 'diagnose', 'medizin']],
+    ['medien', ['journalist', 'interview', 'redaktion', 'bericht', 'presse']],
+  ];
+
+  for (const [kat, keywords] of mapping) {
+    if (keywords.some(kw => text.includes(kw))) return kat;
+  }
+  return null;
+}
+
+// Mapping: Situationskategorie → passende WOERTERBUCH-Kategorien
+const KATEGORIE_MAPPING = {
+  bewerbung:   ["Wirtschaft", "Rhetorik", "Alltag"],
+  geschaeft:   ["Wirtschaft", "Rhetorik", "Diplomatie"],
+  diplomatie:  ["Diplomatie", "Politik", "Rhetorik"],
+  gericht:     ["Recht/Justiz", "Rhetorik", "Philosophie"],
+  akademie:    ["Wissenschaft", "Philosophie", "Rhetorik"],
+  salon:       ["Literatur", "Kunst", "Rhetorik"],
+  politik:     ["Politik", "Gesellschaft", "Rhetorik"],
+  philosophie: ["Philosophie", "Wissenschaft", "Rhetorik"],
+  alltag:      ["Alltag", "Gesellschaft", "Emotion"],
+  geschichte:  ["Geschichte", "Politik", "Philosophie"],
+  medizin:     ["Medizin", "Wissenschaft", "Emotion"],
+  medien:      ["Medien", "Rhetorik", "Gesellschaft"],
+};
+
+function generiereTipps(analyse, situation) {
   const { punkte, mittel, gehobene, avgSinn } = analyse;
   const tipps = [];
   const mittelNamen = new Set(mittel.map(m => m.name));
 
+  const kat = ermittleKategorie(situation);
+
+  const vergleichBeispiele = {
+    bewerbung: `'Meine Erfahrung ist wie ein Mosaik — jedes Stück trägt zum Gesamtbild bei.'`,
+    geschaeft: `'Ein gutes Geschäft ist wie ein Brückenbau — beide Seiten müssen tragen.'`,
+    diplomatie: `'Diplomatie ist wie ein Schachspiel — jeder Zug will bedacht sein.'`,
+    gericht: `'Die Wahrheit ist wie ein Prisma — sie bricht das Licht in viele Facetten.'`,
+    akademie: `'Eine Theorie ohne Empirie ist wie ein Kompass ohne Norden.'`,
+    salon: `'Literatur ist wie ein Spiegel — sie zeigt uns, wer wir sein könnten.'`,
+    politik: `'Demokratie ist wie ein Garten — sie braucht ständige Pflege.'`,
+    philosophie: `'Das Denken ist wie ein Fluss — es findet seinen Weg auch um Hindernisse.'`,
+    alltag: `'Der Alltag ist wie eine Bühne — jeder spielt seine Rolle.'`,
+    geschichte: `'Geschichte ist wie ein Echo — sie wiederholt sich, aber nie identisch.'`,
+    medizin: `'Heilung ist wie ein Puzzle — jedes Teil muss an seinen Platz.'`,
+    medien: `'Nachrichten sind wie ein Scheinwerfer — sie bestimmen, was wir sehen.'`,
+  };
+
+  const frageBeispiele = {
+    bewerbung: `'Ist es nicht die Leidenschaft, die den Unterschied macht?'`,
+    geschaeft: `'Wer profitiert, wenn wir nicht handeln?'`,
+    diplomatie: `'Ist Frieden nicht mehr als die Abwesenheit von Krieg?'`,
+    gericht: `'Kann Gerechtigkeit blind sein und dennoch sehen?'`,
+    akademie: `'Was wissen wir wirklich — und was glauben wir nur zu wissen?'`,
+    salon: `'Ist nicht jedes große Werk ein Dialog über die Zeiten hinweg?'`,
+    politik: `'Wem dient eine Politik, die ihre Bürger vergisst?'`,
+    philosophie: `'Ist es nicht so, dass wahre Erkenntnis im Zweifel beginnt?'`,
+    alltag: `'Sind es nicht die kleinen Momente, die das Leben ausmachen?'`,
+    geschichte: `'Was lehrt uns die Vergangenheit über unsere Zukunft?'`,
+    medizin: `'Heilen wir den Menschen oder nur die Krankheit?'`,
+    medien: `'Informieren Medien — oder formen sie unsere Meinung?'`,
+  };
+
+  const trikolonBeispiele = {
+    bewerbung: `'Mit Kompetenz, mit Einsatz und mit Überzeugung.'`,
+    geschaeft: `'Qualität, Vertrauen und Nachhaltigkeit.'`,
+    diplomatie: `'Durch Dialog, durch Respekt und durch Kompromiss.'`,
+    gericht: `'Fakten, Beweise und die Wahrheit.'`,
+    akademie: `'Beobachten, hinterfragen und verstehen.'`,
+    salon: `'Schönheit, Tiefe und Wahrhaftigkeit.'`,
+    politik: `'Für die Bürger, für die Zukunft, für das Gemeinwohl.'`,
+    philosophie: `'Denken, zweifeln und erkennen.'`,
+    alltag: `'Mit Geduld, mit Humor und mit Gelassenheit.'`,
+    geschichte: `'Erinnern, verstehen und daraus lernen.'`,
+    medizin: `'Zuhören, diagnostizieren und heilen.'`,
+    medien: `'Recherchieren, berichten und einordnen.'`,
+  };
+
   if (avgSinn < 0.5) {
     tipps.push("Formuliere jeden Satz als vollständigen Gedanken mit Subjekt und Verb.");
   }
-  if (!mittelNamen.has("Vergleich/Metapher")) tipps.push("Nutze Vergleiche: 'Die Wahrheit ist wie ein Diamant — sie funkelt aus jedem Blickwinkel anders.'");
-  if (!mittelNamen.has("Rhetorische Frage")) tipps.push("Stelle rhetorische Fragen: 'Ist es nicht so, dass wahre Eloquenz im Herzen beginnt?'");
-  if (!mittelNamen.has("Trikolon")) tipps.push("Verwende Dreiergruppen: 'Mit Mut, mit Herz und mit Verstand.'");
+  if (!mittelNamen.has("Vergleich/Metapher")) {
+    const bsp = vergleichBeispiele[kat] || `'Die Wahrheit ist wie ein Diamant — sie funkelt aus jedem Blickwinkel anders.'`;
+    tipps.push(`Nutze Vergleiche: ${bsp}`);
+  }
+  if (!mittelNamen.has("Rhetorische Frage")) {
+    const bsp = frageBeispiele[kat] || `'Ist es nicht so, dass wahre Eloquenz im Herzen beginnt?'`;
+    tipps.push(`Stelle rhetorische Fragen: ${bsp}`);
+  }
+  if (!mittelNamen.has("Trikolon")) {
+    const bsp = trikolonBeispiele[kat] || `'Mit Mut, mit Herz und mit Verstand.'`;
+    tipps.push(`Verwende Dreiergruppen: ${bsp}`);
+  }
   if (!mittelNamen.has("Antithese")) tipps.push("Baue Gegensätze ein: 'Nicht der Lauteste überzeugt, sondern der Bedachteste.'");
   if (gehobene.length < 2) tipps.push("Integriere gehobene Wörter wie 'nichtsdestotrotz', 'eloquent' oder 'sublim' in deinen Text.");
   if (punkte.argumentation < 7) tipps.push("Verknüpfe Gedanken: 'Zunächst... Darüber hinaus... Schließlich...'");
@@ -218,11 +318,26 @@ function generiereTipps(analyse) {
   return tipps.slice(0, 3);
 }
 
-function generiereEmpfehlungen(gehobene) {
+function generiereEmpfehlungen(gehobene, situation) {
   const bereitsGenutzt = new Set(gehobene.map(w => w.toLowerCase()));
   const pool = WOERTERBUCH.filter(w => !bereitsGenutzt.has(w.wort.toLowerCase()));
-  const shuffled = pool.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, 3).map(w => ({ wort: w.wort, bedeutung: w.definition, satz: w.beispiel }));
+
+  const kat = ermittleKategorie(situation);
+  const relevanteKategorien = KATEGORIE_MAPPING[kat] || [];
+
+  const passend = pool.filter(w => relevanteKategorien.includes(w.kategorie));
+  const rest = pool.filter(w => !relevanteKategorien.includes(w.kategorie));
+
+  const shuffledPassend = passend.sort(() => Math.random() - 0.5);
+  const shuffledRest = rest.sort(() => Math.random() - 0.5);
+
+  // 2 passende + 1 zufälliges (auffüllen wenn nicht genug passende)
+  const empfehlungen = [...shuffledPassend.slice(0, 2), ...shuffledRest.slice(0, 1)];
+  if (empfehlungen.length < 3) {
+    empfehlungen.push(...shuffledRest.slice(0, 3 - empfehlungen.length));
+  }
+
+  return empfehlungen.slice(0, 3).map(w => ({ wort: w.wort, bedeutung: w.definition, satz: w.beispiel }));
 }
 
 // ──────────────────────────────────────────────────────
@@ -284,7 +399,7 @@ function berechneHeuristik(text, situation, kiError) {
         "Jeder Satz braucht ein Subjekt und ein Verb — achte auf Grammatik.",
         "Mindestens 3 zusammenhängende Sätze für eine faire Bewertung.",
       ],
-      empfehlungen: generiereEmpfehlungen([]),
+      empfehlungen: generiereEmpfehlungen([], situation),
       feedback: gamingGrund,
       gaming: true,
       _methode: 'regeln',
@@ -305,8 +420,8 @@ function berechneHeuristik(text, situation, kiError) {
       textstruktur: { p: punkte.textstruktur, f: fb.textstruktur },
     },
     mittel, gehobene,
-    tipps: generiereTipps(analyse),
-    empfehlungen: generiereEmpfehlungen(gehobene),
+    tipps: generiereTipps(analyse, situation),
+    empfehlungen: generiereEmpfehlungen(gehobene, situation),
     feedback: generiereFeedback(analyse),
     gaming: false,
     _methode: 'regeln',
@@ -318,15 +433,15 @@ export async function kiBewertung(situation, antwort) {
   const text = antwort.trim();
   const startTime = Date.now();
 
-  // Try AI scoring with 12s timeout
-  const AI_TIMEOUT_MS = 12000;
+  // Try AI scoring with 30s timeout
+  const AI_TIMEOUT_MS = 30000;
   if (hasAiProvider()) {
     try {
       console.log('[ELOQUENT] Starte KI-Bewertung...');
       const result = await Promise.race([
         aiBewerung(situation, text),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('KI-Bewertung Timeout (12s)')), AI_TIMEOUT_MS)
+          setTimeout(() => reject(new Error('KI-Bewertung Timeout (30s)')), AI_TIMEOUT_MS)
         ),
       ]);
       result._methode = 'ki';
