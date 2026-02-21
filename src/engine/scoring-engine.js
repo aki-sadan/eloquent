@@ -433,33 +433,29 @@ export async function kiBewertung(situation, antwort) {
   const text = antwort.trim();
   const startTime = Date.now();
 
-  // Try AI scoring with 30s timeout
-  const AI_TIMEOUT_MS = 30000;
+  // KI-Bewertung OHNE Timeout — lieber warten als Heuristik
+  // Fallback-Kette: Ollama → Groq → Heuristik (allerletzter Ausweg)
   if (hasAiProvider()) {
     try {
-      console.log('[ELOQUENT] Starte KI-Bewertung...');
-      const result = await Promise.race([
-        aiBewerung(situation, text),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('KI-Bewertung Timeout (30s)')), AI_TIMEOUT_MS)
-        ),
-      ]);
+      console.log('[ELOQUENT] Starte KI-Bewertung (Ollama → Groq)...');
+      const result = await aiBewerung(situation, text);
       result._methode = 'ki';
       result._duration = ((Date.now() - startTime) / 1000).toFixed(1);
       console.log(`[ELOQUENT] KI-Bewertung erfolgreich! (${result._provider}/${result._model}) in ${result._duration}s`);
       return result;
     } catch (e) {
-      console.error('[ELOQUENT] KI-Bewertung fehlgeschlagen:', e.message);
-      // Sofort Heuristik-Ergebnis zurückgeben
+      console.warn('[ELOQUENT] Alle KI-Provider fehlgeschlagen:', e.message);
+      console.warn('[ELOQUENT] Fallback auf Heuristik (letzter Ausweg)');
       const heuristik = berechneHeuristik(text, situation, e.message);
       heuristik._duration = ((Date.now() - startTime) / 1000).toFixed(1);
       return heuristik;
     }
   }
 
-  console.log('[ELOQUENT] Kein KI-Provider, nutze Heuristik');
+  // Kein KI-Provider konfiguriert → Heuristik als einzige Option
+  console.warn('[ELOQUENT] Kein KI-Provider konfiguriert, nutze Heuristik');
   try {
-    const heuristik = berechneHeuristik(text, situation, null);
+    const heuristik = berechneHeuristik(text, situation, 'Kein KI-Provider konfiguriert');
     heuristik._duration = ((Date.now() - startTime) / 1000).toFixed(1);
     return heuristik;
   } catch (e) {

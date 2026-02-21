@@ -215,10 +215,10 @@ async function ollamaScore(situation, antwort) {
   console.log(`[ELOQUENT KI] Ollama → ${ollamaModel}`);
   const prompt = buildPrompt(situation, antwort);
 
+  // Kein AbortSignal.timeout — der KI so viel Zeit geben wie sie braucht
   const res = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(25000),
     body: JSON.stringify({
       model: ollamaModel,
       messages: [
@@ -248,9 +248,9 @@ async function groqScore(apiKey, situation, antwort) {
   console.log('[ELOQUENT KI] Groq → llama-3.3-70b-versatile');
   const prompt = buildPrompt(situation, antwort);
 
+  // Kein AbortSignal.timeout — der KI so viel Zeit geben wie sie braucht
   const res = await fetch(`${GROQ_PROXY}/chat/completions`, {
     method: 'POST',
-    signal: AbortSignal.timeout(15000),
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
@@ -322,33 +322,65 @@ function parseAiResult(rawText) {
   return result;
 }
 
+const MAX_RETRIES = 2; // Pro Provider: 1 Erstversuch + 2 Retries = 3 Versuche
+
+async function mitRetry(fn, providerName) {
+  let lastError;
+  for (let versuch = 1; versuch <= MAX_RETRIES + 1; versuch++) {
+    try {
+      const rawResult = await fn();
+      const result = parseAiResult(rawResult.text);
+      result._provider = rawResult.provider;
+      result._model = rawResult.model;
+      result._versuch = versuch;
+      return result;
+    } catch (e) {
+      lastError = e;
+      if (versuch <= MAX_RETRIES) {
+        const wartezeit = versuch * 2000; // 2s, 4s
+        console.warn(`[ELOQUENT KI] ${providerName} Versuch ${versuch} fehlgeschlagen: ${e.message} — Retry in ${wartezeit / 1000}s...`);
+        await new Promise(r => setTimeout(r, wartezeit));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export async function aiBewerung(situation, antwort) {
   const situObj = typeof situation === 'string'
     ? { titel: '', kontext: '', beschreibung: situation }
     : situation;
 
-  // Direkte Provider-Auswahl: Ollama ODER Groq, kein sequenzieller Fallback
-  let rawResult = null;
+  // Kaskade mit Retries: Ollama (3x) → Groq (3x) → Error
+  // Heuristik wird NICHT hier aktiviert, sondern nur als allerletzter Fallback in scoring-engine.js
 
   if (ollamaAvailable === null ||
       (ollamaAvailable === false && Date.now() - lastOllamaCheck > OLLAMA_RECHECK_INTERVAL)) {
     await checkOllama();
   }
 
+  // 1. Ollama mit Retries (wenn verfügbar)
   if (ollamaAvailable) {
-    // Ollama verfügbar → nur Ollama versuchen
-    rawResult = await ollamaScore(situObj, antwort);
-  } else {
-    // Ollama nicht verfügbar → nur Groq versuchen
-    const groqKey = getGroqKey();
-    if (!groqKey) throw new Error('Kein KI-Provider verfügbar (Ollama offline, kein Groq-Key)');
-    rawResult = await groqScore(groqKey, situObj, antwort);
+    try {
+      return await mitRetry(() => ollamaScore(situObj, antwort), 'Ollama');
+    } catch (ollamaError) {
+      console.warn(`[ELOQUENT KI] Ollama nach ${MAX_RETRIES + 1} Versuchen fehlgeschlagen, wechsle zu Groq:`, ollamaError.message);
+    }
   }
 
-  const result = parseAiResult(rawResult.text);
-  result._provider = rawResult.provider;
-  result._model = rawResult.model;
-  return result;
+  // 2. Groq mit Retries (wenn Key vorhanden)
+  const groqKey = getGroqKey();
+  if (groqKey) {
+    try {
+      return await mitRetry(() => groqScore(groqKey, situObj, antwort), 'Groq');
+    } catch (groqError) {
+      console.error(`[ELOQUENT KI] Groq nach ${MAX_RETRIES + 1} Versuchen fehlgeschlagen:`, groqError.message);
+      throw new Error(`Alle KI-Provider fehlgeschlagen nach Retries (Ollama + Groq): ${groqError.message}`);
+    }
+  }
+
+  // Kein Provider verfügbar
+  throw new Error('Kein KI-Provider verfügbar (Ollama offline, kein Groq-Key)');
 }
 
 // ──────────────────────────────────────────────────────
