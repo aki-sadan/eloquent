@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { SITUATIONEN, SITUATION_KATEGORIEN, SITUATIONEN_NACH_KATEGORIE } from '../data/situationen.js';
 import { kiBewertung } from '../engine/scoring-engine.js';
 import { Button } from '../components/Button.jsx';
@@ -19,7 +19,26 @@ export function DuellPage({ onNavigate }) {
   const [loading, setLoading] = useState(false);
   const [scores, setScores] = useState({ s1: 0, s2: 0, r1: 0, r2: 0 });
   const [history, setHistory] = useState([]);
+  const [elapsed, setElapsed] = useState(0);
+  const loadingStartRef = useRef(null);
+  const s1PromiseRef = useRef(null);
   const gespielteRef = useRef(new Set());
+
+  useEffect(() => {
+    if (!loading) {
+      loadingStartRef.current = null;
+      setElapsed(0);
+      document.title = 'ELOQUENT';
+      return;
+    }
+    loadingStartRef.current = Date.now();
+    const iv = setInterval(() => {
+      const sec = Math.floor((Date.now() - loadingStartRef.current) / 1000);
+      setElapsed(sec);
+      document.title = `⏳ ${sec}s — Bewertung...`;
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [loading]);
 
   const getSituation = (r) => {
     const diff = r <= 1 ? "leicht" : r <= 2 ? "mittel" : "schwer";
@@ -75,7 +94,14 @@ export function DuellPage({ onNavigate }) {
   };
 
   const handleS1Submit = (text) => {
-    setErgebnis1(text === null ? { text: null, skipped: true } : { text });
+    if (text === null) {
+      setErgebnis1({ text: null, skipped: true });
+      s1PromiseRef.current = null;
+    } else {
+      setErgebnis1({ text });
+      // Frühe S1-Bewertung im Hintergrund starten
+      s1PromiseRef.current = kiBewertung(situation, text);
+    }
     setPhase("s1_pass");
     window.scrollTo(0, 0);
   };
@@ -85,8 +111,11 @@ export function DuellPage({ onNavigate }) {
     setPhase("result");
     const s1Skipped = ergebnis1.skipped;
     const s2Skipped = text === null;
+    // S1 aus Hintergrund-Promise nutzen (bereits gestartet bei S1-Abgabe)
+    const s1Promise = s1Skipped ? Promise.resolve(SKIP_ERGEBNIS)
+      : (s1PromiseRef.current || kiBewertung(situation, ergebnis1.text));
     const [r1, r2] = await Promise.all([
-      s1Skipped ? SKIP_ERGEBNIS : kiBewertung(situation, ergebnis1.text),
+      s1Promise,
       s2Skipped ? SKIP_ERGEBNIS : kiBewertung(situation, text),
     ]);
     const p1 = r1 ? Object.values(r1.kategorien || {}).reduce((s, v) => s + (v.p || 0), 0) : 0;
@@ -108,6 +137,7 @@ export function DuellPage({ onNavigate }) {
     setSituation(getSituation(nr));
     setErgebnis1(null);
     setErgebnis2(null);
+    s1PromiseRef.current = null;
     setPhase("s1_write");
   };
 
@@ -211,8 +241,16 @@ export function DuellPage({ onNavigate }) {
         loading ? (
           <div style={{ textAlign: "center", padding: "80px 20px" }}>
             <div style={{ fontSize: 48, animation: "pulse 1.5s infinite", marginBottom: 16 }}>🧠</div>
-            <h2 className="serif" style={{ fontSize: 24, color: "var(--gold)" }}>KI bewertet eure Eloquenz...</h2>
-            <p style={{ color: "var(--text-dim)", marginTop: 8 }}>Die Antworten werden analysiert</p>
+            <h2 className="serif" style={{ fontSize: 24, color: "var(--gold)" }}>
+              {elapsed >= 8 ? "Fällt auf Heuristik zurück..." : "KI bewertet eure Eloquenz..."}
+            </h2>
+            <p style={{ color: "var(--text-dim)", marginTop: 8 }}>
+              {elapsed > 0 && <span className="mono" style={{ color: "var(--gold-dim)" }}>{elapsed}s </span>}
+              {elapsed >= 8 ? "Gleich fertig" : "Die Antworten werden analysiert"}
+              <span style={{ display: "inline-block", width: 24, textAlign: "left" }}>
+                {".".repeat((elapsed % 3) + 1)}
+              </span>
+            </p>
           </div>
         ) : (
           <div>

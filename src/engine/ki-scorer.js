@@ -218,7 +218,7 @@ async function ollamaScore(situation, antwort) {
   const res = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(25000),
+    signal: AbortSignal.timeout(10000),
     body: JSON.stringify({
       model: ollamaModel,
       messages: [
@@ -326,30 +326,22 @@ export async function aiBewerung(situation, antwort) {
     ? { titel: '', kontext: '', beschreibung: situation }
     : situation;
 
+  // Direkte Provider-Auswahl: Ollama ODER Groq, kein sequenzieller Fallback
   let rawResult = null;
-  let errors = [];
 
-  // 1. Try Ollama (local, no API key needed)
-  try {
+  if (ollamaAvailable === null ||
+      (ollamaAvailable === false && Date.now() - lastOllamaCheck > OLLAMA_RECHECK_INTERVAL)) {
+    await checkOllama();
+  }
+
+  if (ollamaAvailable) {
+    // Ollama verfügbar → nur Ollama versuchen
     rawResult = await ollamaScore(situObj, antwort);
-  } catch (e) {
-    errors.push(`Ollama: ${e.message}`);
-  }
-
-  // 2. Try Groq (cloud, needs API key)
-  if (!rawResult) {
+  } else {
+    // Ollama nicht verfügbar → nur Groq versuchen
     const groqKey = getGroqKey();
-    if (groqKey) {
-      try {
-        rawResult = await groqScore(groqKey, situObj, antwort);
-      } catch (e) {
-        errors.push(`Groq: ${e.message}`);
-      }
-    }
-  }
-
-  if (!rawResult) {
-    throw new Error(errors.join(' | ') || 'Kein KI-Provider verfügbar');
+    if (!groqKey) throw new Error('Kein KI-Provider verfügbar (Ollama offline, kein Groq-Key)');
+    rawResult = await groqScore(groqKey, situObj, antwort);
   }
 
   const result = parseAiResult(rawResult.text);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SITUATIONEN, SITUATION_KATEGORIEN, SITUATIONEN_NACH_KATEGORIE } from '../data/situationen.js';
 import { kiBewertung } from '../engine/scoring-engine.js';
 import { Card } from '../components/Card.jsx';
@@ -13,6 +13,24 @@ export function UebungPage() {
   const [schwierigkeit, setSchwierigkeit] = useState("mittel");
   const [ergebnis, setErgebnis] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const loadingStartRef = useRef(null);
+
+  useEffect(() => {
+    if (!loading) {
+      loadingStartRef.current = null;
+      setElapsed(0);
+      document.title = 'ELOQUENT';
+      return;
+    }
+    loadingStartRef.current = Date.now();
+    const iv = setInterval(() => {
+      const sec = Math.floor((Date.now() - loadingStartRef.current) / 1000);
+      setElapsed(sec);
+      document.title = `⏳ ${sec}s — Bewertung...`;
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [loading]);
 
   const chooseDiff = (kat) => {
     setKategorie(kat);
@@ -122,7 +140,16 @@ export function UebungPage() {
         loading ? (
           <div style={{ textAlign: "center", padding: "80px 20px" }}>
             <div style={{ fontSize: 48, animation: "pulse 1.5s infinite", marginBottom: 16 }}>🧠</div>
-            <h2 className="serif" style={{ fontSize: 24, color: "var(--gold)" }}>KI analysiert deine Antwort...</h2>
+            <h2 className="serif" style={{ fontSize: 24, color: "var(--gold)" }}>
+              {elapsed >= 8 ? "Fällt auf Heuristik zurück..." : "KI analysiert deine Antwort..."}
+            </h2>
+            <p style={{ color: "var(--text-dim)", marginTop: 8 }}>
+              {elapsed > 0 && <span className="mono" style={{ color: "var(--gold-dim)" }}>{elapsed}s </span>}
+              {elapsed >= 8 ? "Gleich fertig" : "Bitte warten"}
+              <span style={{ display: "inline-block", width: 24, textAlign: "left" }}>
+                {".".repeat((elapsed % 3) + 1)}
+              </span>
+            </p>
           </div>
         ) : (
           <BewertungDisplay ergebnis={ergebnis} onWeiter={() => { setKategorie(null); setPhase("choose"); }} />

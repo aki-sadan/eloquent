@@ -31,13 +31,13 @@ export function BewertungDisplay({ ergebnis, spielerName, onWeiter }) {
                 fontSize: 11, padding: '3px 10px', borderRadius: 4,
                 background: 'rgba(46,204,113,0.15)', color: '#2ecc71',
                 fontWeight: 600, letterSpacing: 0.5,
-              }}>KI-Bewertung {ergebnis._provider ? `(${ergebnis._provider}` : ''}{ergebnis._model ? ` / ${ergebnis._model})` : ergebnis._provider ? ')' : ''}</span>
+              }}>KI-Bewertung {ergebnis._provider ? `(${ergebnis._provider}` : ''}{ergebnis._model ? ` / ${ergebnis._model})` : ergebnis._provider ? ')' : ''}{ergebnis._duration ? ` · ${ergebnis._duration}s` : ''}</span>
             ) : (
               <span style={{
                 fontSize: 11, padding: '3px 10px', borderRadius: 4,
                 background: 'rgba(255,193,7,0.15)', color: '#f1c40f',
                 fontWeight: 600, letterSpacing: 0.5,
-              }}>Heuristik-Bewertung</span>
+              }}>Heuristik-Bewertung{ergebnis._duration ? ` · ${ergebnis._duration}s` : ''}</span>
             )}
           </div>
 

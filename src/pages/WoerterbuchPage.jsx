@@ -7,7 +7,7 @@ export function WoerterbuchPage() {
   const [filter, setFilter] = useState("Alle");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState(null);
-  const cats = ["Alle", "Rhetorik", "Philosophie", "Emotion", "Wissenschaft", "Alltag"];
+  const cats = ["Alle", ...new Set(WOERTERBUCH.map(w => w.kategorie))];
 
   const filtered = WOERTERBUCH.filter(w => {
     if (filter !== "Alle" && w.kategorie !== filter) return false;
@@ -37,10 +37,10 @@ export function WoerterbuchPage() {
       <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Wort suchen..."
           style={{ flex: 1, minWidth: 200, padding: "10px 14px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text)", fontSize: 14, fontFamily: "inherit", outline: "none" }} />
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 4, flexWrap: "nowrap", overflowX: "auto", maxWidth: "100%", paddingBottom: 4 }}>
           {cats.map(c => (
             <span key={c} onClick={() => setFilter(c)} style={{
-              padding: "6px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer",
+              padding: "6px 12px", borderRadius: 20, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
               background: filter === c ? "var(--gold)22" : "var(--bg-card)",
               color: filter === c ? "var(--gold)" : "var(--text-muted)",
               border: `1px solid ${filter === c ? "var(--gold)44" : "var(--border)"}`,

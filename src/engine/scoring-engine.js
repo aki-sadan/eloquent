@@ -261,85 +261,92 @@ function feedbackMap(punkte, mittel, gehobene) {
 // Main Scoring Function
 // ──────────────────────────────────────────────────────
 
+// Synchrone Heuristik-Bewertung als Hilfsfunktion
+function berechneHeuristik(text, situation, kiError) {
+  const analyse = berechneAlleKategorien(text, situation);
+  if (analyse.gaming.isGaming) {
+    const gamingGrund = analyse.gaming.flags.length > 0
+      ? `Gaming erkannt: ${analyse.gaming.flags.map(f => f.replace(/_/g, ' ')).join(', ')}.`
+      : "Der Text konnte nicht sinnvoll bewertet werden.";
+    return {
+      kategorien: {
+        situationsbezug: { p: 0, f: gamingGrund },
+        wortvielfalt: { p: 0, f: "Zu wenig Substanz für eine Bewertung." },
+        rhetorik: { p: 0, f: "Keine authentischen rhetorischen Mittel erkennbar." },
+        wortschatz: { p: 0, f: "Kein kohärenter Wortschatz verwendet." },
+        argumentation: { p: 0, f: "Keine nachvollziehbare Argumentation." },
+        kreativitaet: { p: 0, f: "Keine kreative Substanz vorhanden." },
+        textstruktur: { p: 0, f: "Keine kohärente Textstruktur." },
+      },
+      mittel: [], gehobene: [],
+      tipps: [
+        "Schreibe vollständige, sinnvolle Sätze mit Bezug zur Situation.",
+        "Jeder Satz braucht ein Subjekt und ein Verb — achte auf Grammatik.",
+        "Mindestens 3 zusammenhängende Sätze für eine faire Bewertung.",
+      ],
+      empfehlungen: generiereEmpfehlungen([]),
+      feedback: gamingGrund,
+      gaming: true,
+      _methode: 'regeln',
+      _kiError: kiError,
+    };
+  }
+  const { punkte, mittel, gehobene } = analyse;
+  const fb = feedbackMap(punkte, mittel, gehobene);
+
+  return {
+    kategorien: {
+      situationsbezug: { p: punkte.situationsbezug, f: fb.situationsbezug },
+      wortvielfalt: { p: punkte.wortvielfalt, f: fb.wortvielfalt },
+      rhetorik: { p: punkte.rhetorik, f: fb.rhetorik },
+      wortschatz: { p: punkte.wortschatz, f: fb.wortschatz },
+      argumentation: { p: punkte.argumentation, f: fb.argumentation },
+      kreativitaet: { p: punkte.kreativitaet, f: fb.kreativitaet },
+      textstruktur: { p: punkte.textstruktur, f: fb.textstruktur },
+    },
+    mittel, gehobene,
+    tipps: generiereTipps(analyse),
+    empfehlungen: generiereEmpfehlungen(gehobene),
+    feedback: generiereFeedback(analyse),
+    gaming: false,
+    _methode: 'regeln',
+    _kiError: kiError,
+  };
+}
+
 export async function kiBewertung(situation, antwort) {
   const text = antwort.trim();
-  let kiError = null;
+  const startTime = Date.now();
 
-  // Try AI scoring first (Ollama → Groq) with 30s timeout
-  const AI_TIMEOUT_MS = 30000;
+  // Try AI scoring with 12s timeout
+  const AI_TIMEOUT_MS = 12000;
   if (hasAiProvider()) {
     try {
       console.log('[ELOQUENT] Starte KI-Bewertung...');
       const result = await Promise.race([
         aiBewerung(situation, text),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('KI-Bewertung Timeout (30s)')), AI_TIMEOUT_MS)
+          setTimeout(() => reject(new Error('KI-Bewertung Timeout (12s)')), AI_TIMEOUT_MS)
         ),
       ]);
       result._methode = 'ki';
-      console.log(`[ELOQUENT] KI-Bewertung erfolgreich! (${result._provider}/${result._model})`);
+      result._duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`[ELOQUENT] KI-Bewertung erfolgreich! (${result._provider}/${result._model}) in ${result._duration}s`);
       return result;
     } catch (e) {
-      kiError = e.message;
       console.error('[ELOQUENT] KI-Bewertung fehlgeschlagen:', e.message);
+      // Sofort Heuristik-Ergebnis zurückgeben
+      const heuristik = berechneHeuristik(text, situation, e.message);
+      heuristik._duration = ((Date.now() - startTime) / 1000).toFixed(1);
+      return heuristik;
     }
-  } else {
-    console.log('[ELOQUENT] Kein KI-Provider, nutze Heuristik');
   }
 
-  // Heuristic scoring (always available)
-  await new Promise(r => setTimeout(r, 300 + Math.random() * 300));
-
+  console.log('[ELOQUENT] Kein KI-Provider, nutze Heuristik');
   try {
-    const analyse = berechneAlleKategorien(text, situation);
-    if (analyse.gaming.isGaming) {
-      const gamingGrund = analyse.gaming.flags.length > 0
-        ? `Gaming erkannt: ${analyse.gaming.flags.map(f => f.replace(/_/g, ' ')).join(', ')}.`
-        : "Der Text konnte nicht sinnvoll bewertet werden.";
-      return {
-        kategorien: {
-          situationsbezug: { p: 0, f: gamingGrund },
-          wortvielfalt: { p: 0, f: "Zu wenig Substanz für eine Bewertung." },
-          rhetorik: { p: 0, f: "Keine authentischen rhetorischen Mittel erkennbar." },
-          wortschatz: { p: 0, f: "Kein kohärenter Wortschatz verwendet." },
-          argumentation: { p: 0, f: "Keine nachvollziehbare Argumentation." },
-          kreativitaet: { p: 0, f: "Keine kreative Substanz vorhanden." },
-          textstruktur: { p: 0, f: "Keine kohärente Textstruktur." },
-        },
-        mittel: [], gehobene: [],
-        tipps: [
-          "Schreibe vollständige, sinnvolle Sätze mit Bezug zur Situation.",
-          "Jeder Satz braucht ein Subjekt und ein Verb — achte auf Grammatik.",
-          "Mindestens 3 zusammenhängende Sätze für eine faire Bewertung.",
-        ],
-        empfehlungen: generiereEmpfehlungen([]),
-        feedback: gamingGrund,
-        gaming: true,
-        _methode: 'regeln',
-        _kiError: kiError,
-      };
-    }
-    const { punkte, mittel, gehobene } = analyse;
-    const fb = feedbackMap(punkte, mittel, gehobene);
-
-    return {
-      kategorien: {
-        situationsbezug: { p: punkte.situationsbezug, f: fb.situationsbezug },
-        wortvielfalt: { p: punkte.wortvielfalt, f: fb.wortvielfalt },
-        rhetorik: { p: punkte.rhetorik, f: fb.rhetorik },
-        wortschatz: { p: punkte.wortschatz, f: fb.wortschatz },
-        argumentation: { p: punkte.argumentation, f: fb.argumentation },
-        kreativitaet: { p: punkte.kreativitaet, f: fb.kreativitaet },
-        textstruktur: { p: punkte.textstruktur, f: fb.textstruktur },
-      },
-      mittel, gehobene,
-      tipps: generiereTipps(analyse),
-      empfehlungen: generiereEmpfehlungen(gehobene),
-      feedback: generiereFeedback(analyse),
-      gaming: false,
-      _methode: 'regeln',
-      _kiError: kiError,
-    };
+    const heuristik = berechneHeuristik(text, situation, null);
+    heuristik._duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    return heuristik;
   } catch (e) {
     console.error("Bewertung fehlgeschlagen:", e);
     return null;
