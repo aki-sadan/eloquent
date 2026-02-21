@@ -242,11 +242,11 @@ export function DuellPage({ onNavigate }) {
           <div style={{ textAlign: "center", padding: "80px 20px" }}>
             <div style={{ fontSize: 48, animation: "pulse 1.5s infinite", marginBottom: 16 }}>🧠</div>
             <h2 className="serif" style={{ fontSize: 24, color: "var(--gold)" }}>
-              {elapsed >= 8 ? "Fällt auf Heuristik zurück..." : "KI bewertet eure Eloquenz..."}
+              {elapsed >= 15 ? "KI braucht etwas länger..." : "KI bewertet eure Eloquenz..."}
             </h2>
             <p style={{ color: "var(--text-dim)", marginTop: 8 }}>
               {elapsed > 0 && <span className="mono" style={{ color: "var(--gold-dim)" }}>{elapsed}s </span>}
-              {elapsed >= 8 ? "Gleich fertig" : "Die Antworten werden analysiert"}
+              {elapsed >= 15 ? "Qualität braucht Zeit — bitte noch kurz Geduld" : "Die Antworten werden analysiert"}
               <span style={{ display: "inline-block", width: 24, textAlign: "left" }}>
                 {".".repeat((elapsed % 3) + 1)}
               </span>
